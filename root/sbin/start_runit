@@ -10,7 +10,4 @@ then
     exit $retval
 fi
 
-# Source any additional environment that was added by the startup script
-#. /startup.env
-
 exec /sbin/runsvdir -P /etc/service

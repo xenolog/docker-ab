@@ -6,9 +6,9 @@ ENV DOCKER_API_VERSION 1.21
 EXPOSE 179 180
 
 RUN apk update \
-  && apk --no-cache add wget ca-certificates libgcc readline ncurses \
+  && apk --no-cache add curl ca-certificates apache2-utils \
   && apk add --no-cache --repository "http://alpine.gliderlabs.com/alpine/edge/community" runit \
-  && date +%Y%m%d-%H:%M:%S > /buildinfo.txt
+  && rm -rf /var/cache/apk/* && date +%Y%m%d-%H:%M:%S-%Z > /buildinfo.txt
 
 # Copy in the filesystem
 COPY root/ /
