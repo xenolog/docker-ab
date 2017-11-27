@@ -1,6 +1,4 @@
 #!/bin/sh
-OPWD=`cd`
-
 # Source any additional environment that was added by the startup script
 #. startup.env
 # mkdir -p /etc/service
@@ -8,4 +6,12 @@ OPWD=`cd`
 # ln -s /etc/sv/confd /etc/service/
 # ln -s /etc/sv/bird /etc/service/
 
-cd $OPWD
+: "${STORAGE_DIR:=/test_results}"
+: "${ENVIRONMENT_ID:=00000000}"
+
+echo "STORAGE_DIR=${STORAGE_DIR}" >> /test_globals.env
+echo "ENVIRONMENT_ID=${ENVIRONMENT_ID}" >> /test_globals.env
+
+mkdir -p "${STORAGE_DIR}"
+
+###
