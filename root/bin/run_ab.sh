@@ -35,12 +35,16 @@ if [ "$rc" != "0" ] ; then
     echo "Warning! non-zero RC-code. (rc=${rc})" >&2
     echo "--------" >&2
     export test_result="failed"
+    gen_json_adder --incoming="${INPUT_JSON_FILE}" > "${OUTPUT_JSON_FILE}"
+    rc=1
 else
     export test_result="passed"
+    export TEST_CASE_RESULT_JSON="${TMP_DIR}/test_case_result.json"
+    cat "${TEST_CASE_RESULT}" | ab-to-json --generic > "${TEST_CASE_RESULT_JSON}"
+    gen_json_adder --incoming="${INPUT_JSON_FILE}" \
+                   --result="${TEST_CASE_RESULT_JSON}" > "${OUTPUT_JSON_FILE}"
+    rc=0
 fi
 
-echo '--------------'
-cat $TEST_CASE_RESULT
-echo '--------------'
-
 echo "done."
+exit $rc

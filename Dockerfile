@@ -11,6 +11,7 @@ RUN apk update \
 # Copy in the filesystem
 COPY root/ /
 COPY src/json2env/json2env.py              /usr/bin/json2env
+COPY src/gen_json_adder/gen_json_adder.py  /usr/bin/gen_json_adder
 COPY src/ab-parse/ab-to-json/ab-to-json.py /usr/bin/ab-to-json
 
 CMD ["start_ab"]
