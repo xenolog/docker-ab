@@ -10,8 +10,8 @@ RUN apk update \
 
 # Copy in the filesystem
 COPY root/ /
-COPY src/json2env/json2env.py /usr/bin/json2env
-# COPY src/ab-parse/ab-to-json/ab-to-json.py /usr/bin/ab-to-json
+COPY src/json2env/json2env.py              /usr/bin/json2env
+COPY src/ab-parse/ab-to-json/ab-to-json.py /usr/bin/ab-to-json
 
 CMD ["start_ab"]
 RUN date +%Y%m%d-%H:%M:%S-%Z > /buildinfo.txt
