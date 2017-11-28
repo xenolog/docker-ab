@@ -1,0 +1,12 @@
+#!/bin/sh
+
+: "${INPUT_DIR:=/var/lib/agent_input}"
+: "${OUTPUT_DIR:=/var/lib/agent_output}"
+
+echo "INPUT_DIR=${INPUT_DIR}"
+echo "OUTPUT_DIR=${OUTPUT_DIR}"
+
+mkdir -p "${INPUT_DIR}" "${OUTPUT_DIR}"
+
+
+
