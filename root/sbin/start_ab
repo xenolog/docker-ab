@@ -1,12 +1,25 @@
 #!/bin/sh
 
-: "${INPUT_DIR:=/var/lib/agent_input}"
 : "${OUTPUT_DIR:=/var/lib/agent_output}"
 
-echo "INPUT_DIR=${INPUT_DIR}"
-echo "OUTPUT_DIR=${OUTPUT_DIR}"
+export STDOUT="${OUTPUT_DIR}/stdout.txt"
+export STDERR="${OUTPUT_DIR}/stderr.txt"
 
-mkdir -p "${INPUT_DIR}" "${OUTPUT_DIR}"
+mkdir -p "${OUTPUT_DIR}"
+
+HEAD="
 
 
+=====================
+$(date +%Y%m%d-%H:%M:%S-%Z)
 
+"
+
+echo "${HEAD}" >> "${STDOUT}"
+echo "${HEAD}" >> "${STDERR}"
+
+run_ab.sh 1>>"${STDOUT}" 2>>"${STDERR}"
+
+if [ "$DEBUG" == "sh" ] ; then
+  sh
+fi
