@@ -139,7 +139,7 @@ def ab_output_to_json(generic=False):
     if generic:
         data = ab_dict_to_generic_format(data)
 
-    sys.stdout.write(json.dumps(data))
+    sys.stdout.write(json.dumps(data, indent=2))
 
 
 def ab_dict_to_generic_format(data):
@@ -155,11 +155,12 @@ def ab_dict_to_generic_format(data):
     }
     for section in ('test_parameters', 'result_details'):
         for key in eval(section):
-            name = key
-            if 'units' in data[key]:
-                name += ', ' + data[key]['units']
-            value = data[key]['value']
-            res[section].append({'name': name, 'value': value})
+            if data.get(key):
+                name = key
+                if 'units' in data[key]:
+                    name += ', ' + data[key]['units']
+                value = data[key]['value']
+                res[section].append({'name': name, 'value': value})
     # placing warnings into result_details
     for k,v in data['Warning'].items():
         res['result_details'].append({'name': k, 'value': v})
