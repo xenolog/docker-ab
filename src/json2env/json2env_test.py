@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import unittest
-# from json2env import *
 import json2env
+import textwrap
 
 income_json = """
 {
@@ -62,26 +62,28 @@ class TestStringMethods(unittest.TestCase):
         a.load(income_json)
         a.prepare()
         # result will be sorted
-        self.assertEqual(str(a), """result_details__complete_requests="4000"
-result_details__failed_requests="1000"
-test_parameters__concurrency="100"
-test_parameters__requests_number="5000"
-vnf_id="1"
-vnf_name="AVI LB"
-""")
+        self.assertEqual(str(a), textwrap.dedent("""\
+            result_details__complete_requests="4000"
+            result_details__failed_requests="1000"
+            test_parameters__concurrency="100"
+            test_parameters__requests_number="5000"
+            vnf_id="1"
+            vnf_name="AVI LB"
+        """))
 
     def test_exported_output(self):
         a = json2env.JsonToEnv(export=True)
         a.load(income_json)
         a.prepare()
         # result will be sorted
-        self.assertEqual(str(a), """export result_details__complete_requests="4000"
-export result_details__failed_requests="1000"
-export test_parameters__concurrency="100"
-export test_parameters__requests_number="5000"
-export vnf_id="1"
-export vnf_name="AVI LB"
-""")
+        self.assertEqual(str(a), textwrap.dedent("""\
+            export result_details__complete_requests="4000"
+            export result_details__failed_requests="1000"
+            export test_parameters__concurrency="100"
+            export test_parameters__requests_number="5000"
+            export vnf_id="1"
+            export vnf_name="AVI LB"
+        """))
 
 
 if __name__ == '__main__':
