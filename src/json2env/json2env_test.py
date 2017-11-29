@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import unittest
 import json2env
 import textwrap

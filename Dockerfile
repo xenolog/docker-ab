@@ -5,7 +5,7 @@ MAINTAINER Sergey Vasilenko <svasilenko@mirantis.com>
 ENV DOCKER_API_VERSION 1.21
 
 RUN apk update \
-  && apk --no-cache add curl ca-certificates apache2-utils python2 vim \
+  && apk --no-cache add curl ca-certificates apache2-utils python3 \
   && rm -rf /var/cache/apk/*
 
 # Copy in the filesystem

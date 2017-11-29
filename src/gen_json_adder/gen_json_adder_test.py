@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import unittest
 import gen_json_adder
 import textwrap
