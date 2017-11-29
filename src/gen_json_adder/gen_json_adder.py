@@ -6,10 +6,52 @@ import os
 import sys
 
 class JsonAdder(object):
-    pass
+    incoming = {}
+    result = {}
+    rv = {}
 
-def main(in_file, res_file, test_result):
-    return 0
+    def __init__(self, in_file=None, res_file=None, test_result='failed', indent=2):
+        self.indent = indent
+        self.test_result = test_result
+        if in_file:
+            self._incoming_file_load(in_file)
+        if res_file:
+            self._result_file_load(res_file)
+
+    def _incoming_string_load(self, js):
+        self.incoming = json.loads(js)
+        self.rv = {}
+
+    def _incoming_file_load(self, filename):
+        with open(filename, 'r') as jsonfile:
+            self.incoming = json.load(jsonfile)
+        self.rv = {}
+
+    def _result_string_load(self, js):
+        self.result = json.loads(js)
+        self.rv = {}
+
+    def _result_file_load(self, filename):
+        with open(filename, 'r') as jsonfile:
+            self.result = json.load(jsonfile)
+        self.rv = {}
+
+    def _prepare(self):
+        if not self.incoming:
+            sys.stderr.write("WARNING: incoming json file is empty")
+        if not self.result:
+            sys.stderr.write("WARNING: test result json file is empty")
+        self.rv.update(self.incoming)
+        self.rv["test_result"] = self.test_result
+        self.rv["result_details"] = self.result.get("result_details", [])
+        self.rv["test_errors"] = self.result.get("test_errors", [])
+        self.rv["test_parameters"] = self.result.get("test_parameters", [])
+
+
+    def __str__(self):
+        if self.rv == {}:
+            self._prepare()
+        return json.dumps(self.rv, indent=self.indent)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -24,5 +66,5 @@ if __name__ == "__main__":
     test_result = os.getenv("test_result", "failed") if args.test_result=='unknown' else args.test_result
 
     # ab_output_to_json(generic=args.generic)
-    rv = main(in_file=args.incoming, res_file=args.result, test_result=test_result)
+    rv = JsonAdder(in_file=args.incoming, res_file=args.result, test_result=test_result)
     sys.stdout.write(str(rv))
