@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import json
 import os
 import argparse
@@ -52,31 +50,28 @@ class JsonToEnv(object):
             rv += "{}{}=\"{}\"\n".format(ex, i[0], str(i[1]))
         return rv
 
-def main(filename, export=False):
-    try:
-        os.stat(filename)
-    except OSError as e:
-        return (1, e)
-    env = JsonToEnv(export=export)
-    env.loadfile(filename)
-    env.prepare()
-    return (0, str(env))
-
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         prog='json2env',
         description='Json to ENV converter'
     )
     parser.add_argument('filename', help='json file')
     parser.add_argument("--export", help="add 'export' to the output",
-        action="store_true")
+        action="store_true", default=False)
     args = parser.parse_args()
 
-    rc = main(args.filename, export=args.export)
-    if rc[0] == 0:
-        sys.stdout.write(rc[1])
-    else:
-        sys.stderr.write("ERROR:\n  {}\n".format(rc[1]))
-        sys.exit(rc[0])
+    try:
+        os.stat(args.filename)
+    except OSError as e:
+        sys.stderr.write("ERROR:\n  {}\n".format(e))
+        sys.exit(1)
+
+    env = JsonToEnv(export=args.export)
+    env.loadfile(args.filename)
+    env.prepare()
+    sys.stdout.write(str(env))
+
+if __name__ == '__main__':
+    main()
 
 ###

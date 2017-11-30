@@ -1,6 +1,6 @@
-# ab-to-json
+# ab2json
 
-`ab-to-json` is a tool for parsing output of the `ab` (Apache HTTP server
+`ab2json` is a tool for parsing output of the `ab` (Apache HTTP server
 benchmarking) tool. It gets the results from stdin, parses it, converts it
 into a JSON structure and writes it to stdout. It does not format the output
 for pretty-printing. It parses error and warning messages.
@@ -36,13 +36,13 @@ are saved to `Warning` dictionary.
 To get non-formatted JSON output:
 
 ```bash
-$ ab -n 100 -c 10 http://ipinfo.io/ 2>&1 | python ab-to-json.py > result.json
+$ ab -n 100 -c 10 http://ipinfo.io/ 2>&1 | python ab2json.py > result.json
 ```
 
 To get formatted JSON output for pretty-printing:
 
 ```bash
-ab -n 100 -c 10 http://ipinfo.io/ 2>&1 | python ab-to-json.py | python -m json.tool > result.json
+ab -n 100 -c 10 http://ipinfo.io/ 2>&1 | python ab2json.py | python -m json.tool > result.json
 ```
 
 Output example (formatted):

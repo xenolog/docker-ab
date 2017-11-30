@@ -27,7 +27,7 @@ json2env --export ${INPUT_JSON_FILE} > "${TASK_SETTINGS}"
 . ${TASK_SETTINGS}
 
 export TEST_CASE_RESULT="${TMP_DIR}/test_case_result.txt"
-test_case__${test_scenario_id}.sh ; rc=$?
+/usr/lib/test_cases/test_case__${test_scenario_id}.sh ; rc=$?
 
 if [ "$rc" != "0" ] ; then
     # TODO: #16252 more powerfull logic for pass/fail test evaluate
@@ -40,7 +40,7 @@ if [ "$rc" != "0" ] ; then
 else
     export test_result="passed"
     export TEST_CASE_RESULT_JSON="${TMP_DIR}/test_case_result.json"
-    cat "${TEST_CASE_RESULT}" | ab-to-json --generic > "${TEST_CASE_RESULT_JSON}"
+    cat "${TEST_CASE_RESULT}" | ab2json --generic > "${TEST_CASE_RESULT_JSON}"
     gen_json_adder --incoming="${INPUT_JSON_FILE}" \
                    --result="${TEST_CASE_RESULT_JSON}" > "${OUTPUT_JSON_FILE}"
     rc=0

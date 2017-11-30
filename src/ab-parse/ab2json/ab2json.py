@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import argparse
 import json
 import re
@@ -72,7 +70,7 @@ perc_table = "Percentile vs Time (ms)"
 conn_time_table = "Connection Times (ms)"
 
 
-def ab_output_to_dict():
+def ab_output_to_dict(infile=sys.stdin):
 
     err_alias = ""
     # multi-line error value
@@ -86,7 +84,7 @@ def ab_output_to_dict():
         conn_time_table: {}
     }
 
-    for line in sys.stdin:
+    for line in infile:
         # handling of last line(s) for multi-line error
         if err_ml_value:
             match = ew_cont.search(line)
@@ -139,7 +137,7 @@ def ab_output_to_json(generic=False):
     if generic:
         data = ab_dict_to_generic_format(data)
 
-    sys.stdout.write(json.dumps(data, indent=2))
+    sys.stdout.write(json.dumps(data))
 
 
 def ab_dict_to_generic_format(data):
@@ -172,11 +170,13 @@ def ab_dict_to_generic_format(data):
 
     return res
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--generic", help="print JSON in generic format",
         action="store_true")
     args = parser.parse_args()
 
     ab_output_to_json(generic=args.generic)
+
+if __name__ == "__main__":
+    main()

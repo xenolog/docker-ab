@@ -5,14 +5,17 @@ MAINTAINER Sergey Vasilenko <svasilenko@mirantis.com>
 ENV DOCKER_API_VERSION 1.21
 
 RUN apk update \
-  && apk --no-cache add curl ca-certificates apache2-utils python3 \
-  && rm -rf /var/cache/apk/*
+  && apk --no-cache add curl ca-certificates apache2-utils python3
 
 # Copy in the filesystem
 COPY root/ /
-COPY src/json2env/json2env.py              /usr/bin/json2env
-COPY src/gen_json_adder/gen_json_adder.py  /usr/bin/gen_json_adder
-COPY src/ab-parse/ab-to-json/ab-to-json.py /usr/bin/ab-to-json
+COPY src/ /tmp/
+
+RUN pip3 install /tmp/ab-parse/ \
+  && pip3 install /tmp/json2env/ \
+  && pip3 install /tmp/gen_json_adder/ \
+  && rm -rf /tmp/* && rm -rf /var/cache/apk/*
 
 CMD ["start_ab"]
+# should be latest for proper versioning
 RUN date +%Y%m%d-%H:%M:%S-%Z > /buildinfo.txt

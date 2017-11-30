@@ -53,7 +53,7 @@ class JsonAdder(object):
             self._prepare()
         return json.dumps(self.rv, indent=self.indent)
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--incoming", action="store",
         help="JSON file with test case description")
@@ -68,3 +68,6 @@ if __name__ == "__main__":
     # ab_output_to_json(generic=args.generic)
     rv = JsonAdder(in_file=args.incoming, res_file=args.result, test_result=test_result)
     sys.stdout.write(str(rv))
+
+if __name__ == "__main__":
+    main()
