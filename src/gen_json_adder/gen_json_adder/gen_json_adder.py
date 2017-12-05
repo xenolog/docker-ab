@@ -5,6 +5,7 @@ import json
 import os
 import sys
 
+
 class JsonAdder(object):
     incoming = {}
     result = {}
@@ -47,11 +48,11 @@ class JsonAdder(object):
         self.rv["test_errors"] = self.result.get("test_errors", [])
         self.rv["test_parameters"] = self.result.get("test_parameters", [])
 
-
     def __str__(self):
         if self.rv == {}:
             self._prepare()
         return json.dumps(self.rv, indent=self.indent)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -63,7 +64,7 @@ def main():
         help="whether test was 'passed' or 'failed'. ENV variable 'test_result' will be used if ommited")
     args = parser.parse_args()
 
-    test_result = os.getenv("test_result", "failed") if args.test_result=='unknown' else args.test_result
+    test_result = os.getenv("test_result", "failed") if args.test_result == 'unknown' else args.test_result
 
     # ab_output_to_json(generic=args.generic)
     rv = JsonAdder(in_file=args.incoming, res_file=args.result, test_result=test_result)

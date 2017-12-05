@@ -1,5 +1,5 @@
 FROM alpine:3.6
-MAINTAINER Sergey Vasilenko <svasilenko@mirantis.com>
+LABEL maintainer="Sergey Vasilenko <svasilenko@mirantis.com>"
 
 # Set the minimum Docker API version required for libnetwork.
 ENV DOCKER_API_VERSION 1.21
