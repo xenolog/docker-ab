@@ -7,11 +7,9 @@ from io import StringIO
 
 
 def dict_merger(*args):
-    if len(args) < 2:
-        return {}
     for i in args:
         if not isinstance(i, dict):
-            raise TypeError("all argiments should be a dict")
+            raise TypeError("all argiments should be a dict, not {}".format(type(i)))
     rv = {}
     # rv.update(args[0])
     for d in args:
@@ -39,43 +37,51 @@ def DefaultizeConfig(h):
 
 
 class ScRunner(object):
-    override = {}  # incoming override
-    settings = {}  # incoming settings (constants)
+    settings = []  # incoming settings will be merged hierarchicaly
     config = {}    # result config
     _scenario = None
 
-    def __init__(self, setfname='', overrfname=''):
-        if setfname:
-            self._load('settings', setfname)
-        if overrfname:
-            self._load('override', overrfname)
+    def __init__(self, scenario_id, configpaths=[]):
+        self.settings.append({
+            # defaults for tasks
+            'tasks': {
+              'defaults': {
+                'implementation': 'sh'
+              }
+            }
+        })
+        self._scenario = scenario_id
+        for cfg in configpaths:
+            self._load(cfg)
 
     def _prepare(self):
-        overrided_config = dict_merger(self.settings.get('tasks', {}), self.override.get('tasks', {}))
-        self.config = DefaultizeConfig(overrided_config)
+        overrided_config = dict_merger(*self.settings)
+        self.config = DefaultizeConfig(overrided_config.get('tasks', {}))
 
-    def _loader(self, target, infile):
-        setattr(self, target, yaml.load(infile))
+    def _loader(self, infile):
+        self.settings.append(yaml.load(infile))
 
-    def _load(self, target, filename):
+    def _load(self, filename):
         with open(filename, 'r') as datafile:
-            self._loader(target, datafile)
+            self._loader(datafile)
 
-    def _loads(self, target, string):
+    def _loads(self, string):
         strio = StringIO(string)
-        self._loader(target, strio)
-
-    def setScenario(self, sc):
-        self._scenario = sc
+        self._loader(strio)
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--generic", help="print JSON in generic format",
-                        action="store_true")
+    parser = argparse.ArgumentParser(
+        prog='sc-runner',
+        description='Scenario runner'
+    )
+    parser.add_argument("--scenario-id", help="Pre-defined scenario ID",
+                        action="store", dest='scenario_id', required=True)
+    parser.add_argument("--config", help="Config file",
+                        action="append", dest='configs', required=True)
     args = parser.parse_args()
 
-    # ab_output_to_json(generic=args.generic)
+    tt = ScRunner(args.scenario_id, *args.configs)
 
 
 if __name__ == "__main__":

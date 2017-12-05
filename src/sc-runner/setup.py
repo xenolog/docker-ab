@@ -12,7 +12,7 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'sc_runner = sc_runner.sc_runner:main'
+            'sc-runner = sc_runner.sc_runner:main'
         ]
     }
 )

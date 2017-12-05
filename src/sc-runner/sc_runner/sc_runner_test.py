@@ -6,10 +6,19 @@ import yaml
 from io import StringIO
 
 BaseYaml = """
+scenarios:
+  1:
+    - 1
+    - 2
+  2:
+    - 2
+    - 1
+  3:
+    - 2
 tasks:
   defaults:
     script: test_case__0.sh
-    putout: /tmp/
+    outputs: /tmp/
     timeout: 120
     properties:
       prop3: val3
@@ -17,7 +26,6 @@ tasks:
     criteria:
       rc:
         value: 0
-
   1:
     description: Get web page 100 times by one thread
     script: test_case__2.sh
@@ -51,11 +59,13 @@ DefaultizedBaseYaml = """
       prop3: val3
       prop4: val4
     criteria: "???"
-    putout: /tmp/
+    implementation: sh
+    outputs: /tmp/
     timeout: 120
   2:
     script: test_case__0.sh
-    putout: /tmp/
+    implementation: sh
+    outputs: /tmp/
     timeout: 120
     properties:
       prop1: val11
@@ -150,19 +160,18 @@ class T(unittest.TestCase):
             }
         })
 
-
     def test_defaultized_yaml(self):
         self.maxDiff = None
-        c = sc_runner.ScRunner()
-        c._loads('settings', BaseYaml)
+        c = sc_runner.ScRunner(1)
+        c._loads(BaseYaml)
         c._prepare()
         self.assertEqual(c.config, yaml.load(StringIO(DefaultizedBaseYaml)))
 
     def test_overrided_yaml(self):
         self.maxDiff = None
-        c = sc_runner.ScRunner()
-        c._loads('settings', BaseYaml)
-        c._loads('override', OverrideYaml)
+        c = sc_runner.ScRunner(1)
+        c._loads(BaseYaml)
+        c._loads(OverrideYaml)
         c._prepare()
         overrided_config = yaml.load(StringIO(DefaultizedBaseYaml))
         overrided_config[1]['properties']['host_ip'] = "127.0.0.1"
