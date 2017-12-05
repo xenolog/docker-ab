@@ -5,7 +5,7 @@ import sys
 import os
 import subprocess
 import logging
-import re
+import shlex
 from io import StringIO
 
 
@@ -34,14 +34,14 @@ def DefaultizeConfig(h):
     if not defaults:
         return {}
     rv = {}
-    for t in sorted(h.keys() - ["defaults"]):
+    for t in sorted(h.keys() - ['defaults']):
             rv[t] = dict_merger(defaults, h[t])
     return rv
 
 
 class ScRunner(object):
 
-    def __init__(self, configpaths=[]):
+    def __init__(self, configpaths=[], out_dir='/tmp', res_dir='/tmp'):
         self._settings = []  # incoming settings will be merged hierarchicaly
         self.config = {}    # result config
         self._scenarios = {}
@@ -103,7 +103,7 @@ class ScRunner(object):
                 continue
             if task['implementation'] == 'inline-sh':
                 script = script.format(**task.get('properties', {}))
-                script = re.split(r'\s+', script)
+                script = shlex.split(script)
             elif task['implementation'] == 'sh':
                 script = [script]
             else:
@@ -131,7 +131,7 @@ def main():
                         action="store", dest='result_dir', required=True)
     args = parser.parse_args()
 
-    tt = ScRunner(*args.configs)
+    tt = ScRunner(*args.configs, out_dir=args.outputs_dir, res_dir=args.result_dir)
     rc = tt.run()
     return rc
 
