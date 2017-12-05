@@ -54,6 +54,7 @@ class ScRunner(object):
 
         self.out_dir = out_dir
         self.res_dir = res_dir
+        self.ts = None
 
         self._settings.append({
             # defaults for tasks
@@ -97,7 +98,9 @@ class ScRunner(object):
             self.log.warning("Scenario with id '{}' is empty".format(self._scenario_id))
         return rv
 
-    def _exec_subprocess(self, logfilename, script, env, task_id=None):
+    def _exec_subprocess(self, logfilename, script, env):
+        for k, v in env.items():
+            env[k] = str(v)
         p = subprocess.Popen(script,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -107,16 +110,18 @@ class ScRunner(object):
         p.wait()
         rc = p.returncode
         # create logfiles
+        stdout = p.stdout.read().decode('utf8')
+        stderr = p.stderr.read().decode('utf8')
         with open("{}/{}__stdout.txt".format(self.out_dir, logfilename), "w") as f:
-            f.write(p.stdout.read())
-        with open("{}/{}__stderr.txt".format(self.out_dir, logfilename), "w") as f:
-            f.write(p.stderr.read())
-        p.stdout.seek(0)
-        p.stderr.seek(0)
-        return rc, p.stdout, p.stderr
+            f.write(stdout)
+        rctxt = '' if rc == 0 else "rc{:03d}__".format(rc)
+        with open("{}/{}__{}stderr.txt".format(self.out_dir, logfilename, rctxt), "w") as f:
+            f.write(stderr)
+        return rc, stdout, stderr
 
     def run(self, runner=None):  # fake runner may be used for testing purpose
         grc = 0
+        self.ts = datetime.datetime.now().isoformat(timespec='seconds')
         if self.config == {}:
             self._prepare()
         for task_id in self._scenario():
@@ -140,9 +145,8 @@ class ScRunner(object):
                 raise NotImplemented("Implementation '{}' not ready :(".format(task['implementation']))
             if runner is None:
                 # run by subprocess runner
-                ts = datetime.datetime.now().isoformat(timespec='seconds')
                 rc, stdout, stderr = self._exec_subprocess(
-                    "{}__sc{:04d}__task{:04d}".format(ts, self.scenario_id, task_id), script, env
+                    "{}__sc{:04d}__task{:04d}".format(self.ts, self._scenario_id, task_id), script, env
                 )
             else:
                 # fake runner for test purposes
@@ -151,13 +155,16 @@ class ScRunner(object):
                 grc = rc
             # analize AB result
             if rc == 0 and stdout is not None:
-                self.results[task_id] = ab_output_to_dict(infile=stdout)
+                self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
         return rc
 
     def generate_report(self):
         for k, v in self.results.items():
-            with open("{}/sc{:04d}__task{:04d}__report.json".format(self.out_dir, self.scenario_id, k), "w") as f:
-                f.write(json.dump(ab_dict_to_generic_format(v), ident=2))
+            report_filename = "{}/{}__sc{:04d}__task{:04d}__report.json".format(
+                self.out_dir, self.ts, self._scenario_id, k
+            )
+            with open(report_filename, "w") as f:
+                f.write(json.dumps(ab_dict_to_generic_format(v), sort_keys=True, indent=2))
         # result weight analitics should be here
 
 
@@ -166,17 +173,16 @@ def main():
         prog='sc-runner',
         description='Scenario runner'
     )
-    parser.add_argument("--scenario-id", help="Pre-defined scenario ID",
-                        action="store", dest='scenario_id', required=True)
     parser.add_argument("--config", help="Config file",
                         action="append", dest='configs', required=True)
     parser.add_argument("--outputs-dir", help="Directory for store stderr and stdout of tasks",
                         action="store", dest='outputs_dir', required=True)
     parser.add_argument("--result-dir", help="Directory for store test results in 'generic' format",
                         action="store", dest='result_dir', required=True)
+    #todo: --debug key
     args = parser.parse_args()
 
-    tt = ScRunner(*args.configs, out_dir=args.outputs_dir, res_dir=args.result_dir)
+    tt = ScRunner(configpaths=args.configs, out_dir=args.outputs_dir, res_dir=args.result_dir)
     rc = tt.run()
     tt.generate_report()
     return rc

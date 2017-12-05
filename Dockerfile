@@ -5,15 +5,14 @@ LABEL maintainer="Sergey Vasilenko <svasilenko@mirantis.com>"
 ENV DOCKER_API_VERSION 1.21
 
 RUN apk update \
-  && apk --no-cache add curl ca-certificates apache2-utils python3
+  && apk --no-cache add curl ca-certificates apache2-utils python3 py3-yaml
 
 # Copy in the filesystem
 COPY root/ /
 COPY src/ /tmp/
 
 RUN pip3 install /tmp/ab-parse/ \
-  && pip3 install /tmp/json2env/ \
-  && pip3 install /tmp/gen_json_adder/ \
+  && pip3 install /tmp/sc-runner/ \
   && rm -rf /tmp/* && rm -rf /var/cache/apk/*
 
 CMD ["start_ab"]
