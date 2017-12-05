@@ -3,6 +3,9 @@ import argparse
 import yaml
 import sys
 import os
+import subprocess
+import logging
+import re
 from io import StringIO
 
 
@@ -37,12 +40,15 @@ def DefaultizeConfig(h):
 
 
 class ScRunner(object):
-    settings = []  # incoming settings will be merged hierarchicaly
-    config = {}    # result config
-    _scenario_id = None
 
     def __init__(self, configpaths=[]):
-        self.settings.append({
+        self._settings = []  # incoming settings will be merged hierarchicaly
+        self.config = {}    # result config
+        self._scenarios = {}
+        self._scenario_id = None
+
+        self.log = logging.getLogger(__name__)
+        self._settings.append({
             # defaults for tasks
             'tasks': {
                 'defaults': {
@@ -54,14 +60,15 @@ class ScRunner(object):
             self._load(cfg)
 
     def _prepare(self):
-        overrided_config = dict_merger(*self.settings)
+        overrided_config = dict_merger(*self._settings)
+        self._scenarios = overrided_config.get('scenarios', {})
         self._scenario_id = overrided_config.get('scenario_id')
         if self._scenario_id is None:
             raise ValueError("Scenario-ID should be defined")
         self.config = DefaultizeConfig(overrided_config.get('tasks', {}))
 
     def _loader(self, infile):
-        self.settings.append(yaml.load(infile))
+        self._settings.append(yaml.load(infile))
 
     def _load(self, filename):
         with open(filename, 'r') as datafile:
@@ -70,6 +77,43 @@ class ScRunner(object):
     def _loads(self, string):
         strio = StringIO(string)
         self._loader(strio)
+
+    def _scenario(self):
+        rv = self._scenarios.get(self._scenario_id, [])
+        count = len(rv)
+        for i in rv:
+            if self.config.get(i) is None:
+                self.log.warning("Scenario with id '{}' contains unknown task '{}'".format(self._scenario_id, i))
+                count -= 1
+        if count < 1:
+            self.log.warning("Scenario with id '{}' is empty".format(self._scenario_id))
+        return rv
+
+    def run(self, runner=None):  # fake runner may be used for testing purpose
+        if self.config == {}:
+            self._prepare()
+        for task_id in self._scenario():
+            task = self.config[task_id]
+            script = task.get('script', None)
+            if script is None:
+                self.log.error("Task {task} has no script definition: {yml}".format(
+                    task=task_id,
+                    yml=yaml.dump(task)
+                ))
+                continue
+            if task['implementation'] == 'inline-sh':
+                script = script.format(**task.get('properties', {}))
+                script = re.split(r'\s+', script)
+            elif task['implementation'] == 'sh':
+                script = [script]
+            else:
+                raise NotImplemented("Implementation '{}' not ready :(".format(task['implementation']))
+
+            if runner is None:
+                # run by subprocess
+                pass
+            else:
+                runner(script, task)
 
 
 def main():
@@ -87,8 +131,11 @@ def main():
                         action="store", dest='result_dir', required=True)
     args = parser.parse_args()
 
-    tt = ScRunner(args.scenario_id, *args.configs)
+    tt = ScRunner(*args.configs)
+    rc = tt.run()
+    return rc
 
 
 if __name__ == "__main__":
-    main()
+    rc = main()
+    sys.exit(rc)
