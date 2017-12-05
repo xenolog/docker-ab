@@ -18,7 +18,7 @@ def dict_merger(*args):
         keys2 = set()
         keys2.update(rv.keys())
         keys2.update(d.keys())
-        for k in sorted(keys2):
+        for k in keys2:
             if d.get(k) is None:
                 continue
             if isinstance(d[k], dict) and isinstance(rv.get(k), dict):
@@ -39,9 +39,10 @@ def DefaultizeConfig(h):
 
 
 class ScRunner(object):
-    override = {}
-    settings = {}
-    config = {}
+    override = {}  # incoming override
+    settings = {}  # incoming settings (constants)
+    config = {}    # result config
+    _scenario = None
 
     def __init__(self, setfname='', overrfname=''):
         if setfname:
@@ -50,8 +51,8 @@ class ScRunner(object):
             self._load('override', overrfname)
 
     def _prepare(self):
-        self.config = DefaultizeConfig(self.settings)
-        # self.config = hash_override(self.settings, self.override)
+        overrided_config = dict_merger(self.settings.get('tasks', {}), self.override.get('tasks', {}))
+        self.config = DefaultizeConfig(overrided_config)
 
     def _loader(self, target, infile):
         setattr(self, target, yaml.load(infile))
@@ -63,6 +64,9 @@ class ScRunner(object):
     def _loads(self, target, string):
         strio = StringIO(string)
         self._loader(target, strio)
+
+    def setScenario(self, sc):
+        self._scenario = sc
 
 
 def main():

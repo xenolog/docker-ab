@@ -3,7 +3,7 @@ import unittest
 import sc_runner
 # import textwrap
 import yaml
-# from io import StringIO
+from io import StringIO
 
 BaseYaml = """
 tasks:
@@ -12,8 +12,8 @@ tasks:
     putout: /tmp/
     timeout: 120
     properties:
-      prop3: val1
-      prop4: val2
+      prop3: val3
+      prop4: val4
     criteria:
       rc:
         value: 0
@@ -22,23 +22,32 @@ tasks:
     description: Get web page 100 times by one thread
     script: test_case__2.sh
     properties:
-      prop1: val1
-      prop2: val2
+      prop1: val11
+      prop2: val12
     criteria: "???"
   2:
     properties:
-      prop1: val1
-      prop2: val2
+      prop1: val11
+      prop3: val13
+"""
+
+OverrideYaml = """
+tasks:
+  defaults:
+    properties:
+      host_ip: 127.0.0.1
+  2:
+    properties:
+      host_ip: 192.168.0.1
 """
 
 DefaultizedBaseYaml = """
-tasks:
   1:
     description: Get web page 100 times by one thread
     script: test_case__2.sh
     properties:
-      prop1: val1
-      prop2: val2
+      prop1: val11
+      prop2: val12
       prop3: val3
       prop4: val4
     criteria: "???"
@@ -49,15 +58,12 @@ tasks:
     putout: /tmp/
     timeout: 120
     properties:
-      prop1: val1
-      prop3: val3
+      prop1: val11
+      prop3: val13
       prop4: val4
     criteria:
       rc:
         value: 0
-"""
-
-OverrideYaml = """
 """
 
 
@@ -145,46 +151,23 @@ class T(unittest.TestCase):
         })
 
 
+    def test_defaultized_yaml(self):
+        self.maxDiff = None
+        c = sc_runner.ScRunner()
+        c._loads('settings', BaseYaml)
+        c._prepare()
+        self.assertEqual(c.config, yaml.load(StringIO(DefaultizedBaseYaml)))
 
-    # def test_defaultized_yaml(self):
-    #     self.maxDiff = None
-    #     c = sc_runner.ScRunner()
-    #     c._loads('settings', BaseYaml)
-    #     c._prepare()
-    #     print(yaml.dump(c.settings))
-    #     print(yaml.dump(c.config))
-    #     self.assertEqual(c.config, {
-    #         'tasks': {
-    #             1: {
-    #                 'description': 'Get web page 100 times by one thread',
-    #                 'script': 'test_case__2.sh',
-    #                 'properties': {
-    #                     'prop1': 'val1',
-    #                     'prop2': 'val2',
-    #                     'prop3': 'val3',
-    #                     'prop4': 'val4'
-    #                 },
-    #                 'criteria': '???',
-    #                 'putout': '/tmp/',
-    #                 'timeout': 120
-    #             },
-    #             2: {
-    #                 'script': 'test_case__0.sh',
-    #                 'putout': '/tmp/',
-    #                 'timeout': 120,
-    #                 'properties': {
-    #                     'prop1': 'val1',
-    #                     'prop3': 'val3',
-    #                     'prop4': 'val4'
-    #                 },
-    #                 'criteria': {
-    #                     'rc': {
-    #                         'value': 0
-    #                     }
-    #                 }
-    #             }
-    #         }
-    #     })
+    def test_overrided_yaml(self):
+        self.maxDiff = None
+        c = sc_runner.ScRunner()
+        c._loads('settings', BaseYaml)
+        c._loads('override', OverrideYaml)
+        c._prepare()
+        overrided_config = yaml.load(StringIO(DefaultizedBaseYaml))
+        overrided_config[1]['properties']['host_ip'] = "127.0.0.1"
+        overrided_config[2]['properties']['host_ip'] = "192.168.0.1"
+        self.assertEqual(c.config, overrided_config)
 
 
 if __name__ == '__main__':
