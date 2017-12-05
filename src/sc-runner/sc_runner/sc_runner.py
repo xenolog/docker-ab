@@ -39,23 +39,25 @@ def DefaultizeConfig(h):
 class ScRunner(object):
     settings = []  # incoming settings will be merged hierarchicaly
     config = {}    # result config
-    _scenario = None
+    _scenario_id = None
 
-    def __init__(self, scenario_id, configpaths=[]):
+    def __init__(self, configpaths=[]):
         self.settings.append({
             # defaults for tasks
             'tasks': {
-              'defaults': {
-                'implementation': 'sh'
-              }
+                'defaults': {
+                    'implementation': 'sh'
+                }
             }
         })
-        self._scenario = scenario_id
         for cfg in configpaths:
             self._load(cfg)
 
     def _prepare(self):
         overrided_config = dict_merger(*self.settings)
+        self._scenario_id = overrided_config.get('scenario_id')
+        if self._scenario_id is None:
+            raise ValueError("Scenario-ID should be defined")
         self.config = DefaultizeConfig(overrided_config.get('tasks', {}))
 
     def _loader(self, infile):
@@ -79,6 +81,10 @@ def main():
                         action="store", dest='scenario_id', required=True)
     parser.add_argument("--config", help="Config file",
                         action="append", dest='configs', required=True)
+    parser.add_argument("--outputs-dir", help="Directory for store stderr and stdout of tasks",
+                        action="store", dest='outputs_dir', required=True)
+    parser.add_argument("--result-dir", help="Directory for store test results in 'generic' format",
+                        action="store", dest='result_dir', required=True)
     args = parser.parse_args()
 
     tt = ScRunner(args.scenario_id, *args.configs)

@@ -5,7 +5,8 @@ import sc_runner
 import yaml
 from io import StringIO
 
-BaseYaml = """
+AbstractYaml = """
+scenario_id: 1
 scenarios:
   1:
     - 1
@@ -39,7 +40,7 @@ tasks:
       prop3: val13
 """
 
-OverrideYaml = """
+OverrideAbstractYaml = """
 tasks:
   defaults:
     properties:
@@ -49,7 +50,7 @@ tasks:
       host_ip: 192.168.0.1
 """
 
-DefaultizedBaseYaml = """
+DefaultizedAbstractYaml = """
   1:
     description: Get web page 100 times by one thread
     script: test_case__2.sh
@@ -74,6 +75,66 @@ DefaultizedBaseYaml = """
     criteria:
       rc:
         value: 0
+"""
+
+AVItestYaml = """
+---
+scenarios:
+  1:
+    - 1
+    - 2
+  2:
+    - 3
+    - 4
+    - 5
+
+tasks:
+  defaults:
+    implementation: inline-sh
+    script: ab -c {concurrency} -n {requests} http://{host_ip}/
+    outputs: /tmp/           # script will generate two files script_name__[stderr/stdout].{test_case_id}
+    timelimit: 120           # sec
+    properties:
+      concurrency: 1
+      requests: 10
+    criteria:
+      rc:
+        value: 0
+
+  1:
+    description: Get web page 100 times by one thread
+    properties:
+      concurrency: 1
+      requests: 100
+    criteria: "???"
+  2:
+    properties:
+      concurrency: 100
+      requests: 100000
+      timelimit: 6000
+  3:
+    implementation: inline-sh
+    script: ab -c {concurrency} -n {requests} http://{host_ip}:80/
+    properties:
+      concurrency: 1
+      requests: 100
+  4:
+    implementation: inline-sh
+    script: ab -c {concurrency} -n {requests} -i http://{host_ip}:80/
+    properties:
+      concurrency: 1
+      requests: 100
+  5:
+    properties:
+      concurrency: 1
+      requests: 1
+"""
+OverrideAVIyaml = """
+scenario_id: 1
+tasks:
+  defaults:
+    properties:
+      host_ip: 127.0.0.1
 """
 
 
@@ -162,18 +223,18 @@ class T(unittest.TestCase):
 
     def test_defaultized_yaml(self):
         self.maxDiff = None
-        c = sc_runner.ScRunner(1)
-        c._loads(BaseYaml)
+        c = sc_runner.ScRunner()
+        c._loads(AbstractYaml)
         c._prepare()
-        self.assertEqual(c.config, yaml.load(StringIO(DefaultizedBaseYaml)))
+        self.assertEqual(c.config, yaml.load(StringIO(DefaultizedAbstractYaml)))
 
     def test_overrided_yaml(self):
         self.maxDiff = None
-        c = sc_runner.ScRunner(1)
-        c._loads(BaseYaml)
-        c._loads(OverrideYaml)
+        c = sc_runner.ScRunner()
+        c._loads(AbstractYaml)
+        c._loads(OverrideAbstractYaml)
         c._prepare()
-        overrided_config = yaml.load(StringIO(DefaultizedBaseYaml))
+        overrided_config = yaml.load(StringIO(DefaultizedAbstractYaml))
         overrided_config[1]['properties']['host_ip'] = "127.0.0.1"
         overrided_config[2]['properties']['host_ip'] = "192.168.0.1"
         self.assertEqual(c.config, overrided_config)
