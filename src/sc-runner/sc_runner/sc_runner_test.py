@@ -106,6 +106,7 @@ class T1(unittest.TestCase):
         tasks:
           defaults:
             script: test_case__0.sh
+            implementation: sh
             outputs: /tmp/
             timeout: 120
             properties:
@@ -258,8 +259,9 @@ class T2(unittest.TestCase):
 
     def test_runner_1(self):
 
-        def fake_runner(script, task):
+        def fake_runner(script, task, env):
             self.fr_result.append(script)
+            return 0, None, None
 
         self.fr_result = []
         self.t2.run(runner=fake_runner)
@@ -270,8 +272,9 @@ class T2(unittest.TestCase):
 
     def test_runner_2(self):
 
-        def fake_runner(script, task):
+        def fake_runner(script, task, env):
             self.fr_result.append(script)
+            return 1, None, None
 
         self.fr_result = []
         self.t2._settings[-1]['scenario_id'] = 2

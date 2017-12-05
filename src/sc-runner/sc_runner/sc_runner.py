@@ -1,13 +1,15 @@
 import argparse
-# import json
+import json
 import yaml
 import sys
 import os
 import subprocess
 import logging
 import shlex
+import datetime
 from io import StringIO
 
+from ab2json.ab2json import ab_output_to_dict, ab_dict_to_generic_format
 
 def dict_merger(*args):
     for i in args:
@@ -42,17 +44,23 @@ def DefaultizeConfig(h):
 class ScRunner(object):
 
     def __init__(self, configpaths=[], out_dir='/tmp', res_dir='/tmp'):
+        self.log = logging.getLogger(__name__)
+
         self._settings = []  # incoming settings will be merged hierarchicaly
-        self.config = {}    # result config
+        self.config = {}     # merged config for run tasks
+        self.results = {}    # result storage
         self._scenarios = {}
         self._scenario_id = None
 
-        self.log = logging.getLogger(__name__)
+        self.out_dir = out_dir
+        self.res_dir = res_dir
+
         self._settings.append({
             # defaults for tasks
             'tasks': {
                 'defaults': {
-                    'implementation': 'sh'
+                    'implementation': 'inline-sh',
+                    'script': 'echo'
                 }
             }
         })
@@ -89,7 +97,26 @@ class ScRunner(object):
             self.log.warning("Scenario with id '{}' is empty".format(self._scenario_id))
         return rv
 
+    def _exec_subprocess(self, logfilename, script, env, task_id=None):
+        p = subprocess.Popen(script,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=self.out_dir,
+            env=env
+        )
+        p.wait()
+        rc = p.returncode
+        # create logfiles
+        with open("{}/{}__stdout.txt".format(self.out_dir, logfilename), "w") as f:
+            f.write(p.stdout.read())
+        with open("{}/{}__stderr.txt".format(self.out_dir, logfilename), "w") as f:
+            f.write(p.stderr.read())
+        p.stdout.seek(0)
+        p.stderr.seek(0)
+        return rc, p.stdout, p.stderr
+
     def run(self, runner=None):  # fake runner may be used for testing purpose
+        grc = 0
         if self.config == {}:
             self._prepare()
         for task_id in self._scenario():
@@ -101,6 +128,9 @@ class ScRunner(object):
                     yml=yaml.dump(task)
                 ))
                 continue
+            env = {}
+            env.update(os.environ)
+            env.update(task.get('properties', {}))
             if task['implementation'] == 'inline-sh':
                 script = script.format(**task.get('properties', {}))
                 script = shlex.split(script)
@@ -108,12 +138,27 @@ class ScRunner(object):
                 script = [script]
             else:
                 raise NotImplemented("Implementation '{}' not ready :(".format(task['implementation']))
-
             if runner is None:
-                # run by subprocess
-                pass
+                # run by subprocess runner
+                ts = datetime.datetime.now().isoformat(timespec='seconds')
+                rc, stdout, stderr = self._exec_subprocess(
+                    "{}__sc{:04d}__task{:04d}".format(ts, self.scenario_id, task_id), script, env
+                )
             else:
-                runner(script, task)
+                # fake runner for test purposes
+                rc, stdout, stderr = runner(script, task, env)
+            if rc > grc:
+                grc = rc
+            # analize AB result
+            if rc == 0 and stdout is not None:
+                self.results[task_id] = ab_output_to_dict(infile=stdout)
+        return rc
+
+    def generate_report(self):
+        for k, v in self.results.items():
+            with open("{}/sc{:04d}__task{:04d}__report.json".format(self.out_dir, self.scenario_id, k), "w") as f:
+                f.write(json.dump(ab_dict_to_generic_format(v), ident=2))
+        # result weight analitics should be here
 
 
 def main():
@@ -133,6 +178,7 @@ def main():
 
     tt = ScRunner(*args.configs, out_dir=args.outputs_dir, res_dir=args.result_dir)
     rc = tt.run()
+    tt.generate_report()
     return rc
 
 
