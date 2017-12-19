@@ -96,13 +96,16 @@ class T1(unittest.TestCase):
         scenario_id: 1
         scenarios:
           1:
-            - 1
-            - 2
+            tasks:
+              - 1
+              - 2
           2:
-            - 2
-            - 1
+            tasks:
+              - 2
+              - 1
           3:
-            - 2
+            tasks:
+              - 2
         tasks:
           defaults:
             script: test_case__0.sh
@@ -192,12 +195,14 @@ class T2(unittest.TestCase):
         ---
         scenarios:
           1:
-            - 1
-            - 2
+            tasks:
+              - 1
+              - 2
           2:
-            - 3
-            - 4
-            - 5
+            tasks:
+              - 3
+              - 4
+              - 5
 
         tasks:
           defaults:

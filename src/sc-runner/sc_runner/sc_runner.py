@@ -88,7 +88,7 @@ class ScRunner(object):
         self._loader(strio)
 
     def _scenario(self):
-        rv = self._scenarios.get(self._scenario_id, [])
+        rv = self._scenarios.get(self._scenario_id, {}).get('tasks', [])
         count = len(rv)
         for i in rv:
             if self.config.get(i) is None:
