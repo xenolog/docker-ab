@@ -5,7 +5,8 @@ LABEL maintainer="Sergey Vasilenko <svasilenko@mirantis.com>"
 ENV DOCKER_API_VERSION 1.21
 
 RUN apk update \
-  && apk --no-cache add curl ca-certificates apache2-utils python3 py3-yaml
+  && apk add curl ca-certificates apache2-utils python3 py3-yaml \
+  && pip3 install yaql
 
 # Copy in the filesystem
 COPY root/ /
