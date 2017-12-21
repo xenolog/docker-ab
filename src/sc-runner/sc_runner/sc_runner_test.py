@@ -291,5 +291,162 @@ class T2(unittest.TestCase):
         ])
 
 
+class T3(unittest.TestCase):
+    """
+    Testing Scenario's metadata merging
+    and pass metadata's fields to "generic" report
+    """
+
+    testYaml = textwrap.dedent("""\
+        ---
+        scenarios:
+          defaults:
+            metadata:
+              vnf_name: "AVI LB"
+              vnf_id: "1"
+              vnf_version: "1.0"
+          1:
+            tasks:
+              - 2
+          2:
+            tasks:
+              - 3
+              - 4
+
+        tasks:
+          defaults:
+            implementation: inline-sh
+            script: ab -c {concurrency} -n {requests} http://{host_ip}/
+            outputs: /tmp/           # script will generate two files script_name__[stderr/stdout].{test_case_id}
+            timelimit: 120           # sec
+            properties:
+              concurrency: 1
+              requests: 10
+            criteria:
+              rc:
+                value: 0
+
+          1:
+            description: Get web page 100 times by one thread
+            properties:
+              concurrency: 1
+              requests: 100
+            criteria: "???"
+          2:
+            properties:
+              concurrency: 10
+              requests: 10000
+    """)
+    overrideYaml = textwrap.dedent("""\
+        ---
+        scenario_id: 1
+        scenarios:
+          defaults:
+            metadata:
+              vnf_id: "2"
+              qwe: 123
+        tasks:
+          defaults:
+            properties:
+              host_ip: 127.0.0.1
+    """)
+    resultScenariosYaml = textwrap.dedent("""\
+        ---
+        1:
+          metadata:
+              qwe: 123
+              vnf_id: "2"
+              vnf_name: "AVI LB"
+              vnf_version: "1.0"
+          tasks:
+              - 2
+        2:
+          metadata:
+              qwe: 123
+              vnf_id: "2"
+              vnf_name: "AVI LB"
+              vnf_version: "1.0"
+          tasks:
+              - 3
+              - 4
+    """)
+    # ABoutput = textwrap.dedent("""\
+    #     This is ApacheBench, Version 2.3 <$Revision: 1796539 $>
+    #     Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+    #     Licensed to The Apache Software Foundation, http://www.apache.org/
+
+    #     Benchmarking 172.17.0.2 (be patient)
+
+
+    #     Server Software:        nginx/1.13.7
+    #     Server Hostname:        172.17.0.2
+    #     Server Port:            80
+
+    #     Document Path:          /
+    #     Document Length:        612 bytes
+
+    #     Concurrency Level:      10
+    #     Time taken for tests:   3.502 seconds
+    #     Complete requests:      10000
+    #     Failed requests:        0
+    #     Total transferred:      8450000 bytes
+    #     HTML transferred:       6120000 bytes
+    #     Requests per second:    2855.13 [#/sec] (mean)
+    #     Time per request:       3.502 [ms] (mean)
+    #     Time per request:       0.350 [ms] (mean, across all concurrent requests)
+    #     Transfer rate:          2356.04 [Kbytes/sec] received
+
+    #     Connection Times (ms)
+    #                   min  mean[+/-sd] median   max
+    #     Connect:        0    1   0.5      0       3
+    #     Processing:     0    3   0.8      3      10
+    #     Waiting:        0    3   0.8      3      10
+    #     Total:          1    3   0.6      3      10
+    #     WARNING: The median and mean for the initial connection time are not within a normal deviation
+    #             These results are probably not that reliable.
+
+    #     Percentage of the requests served within a certain time (ms)
+    #       50%      3
+    #       66%      4
+    #       75%      4
+    #       80%      4
+    #       90%      4
+    #       95%      4
+    #       98%      5
+    #       99%      5
+    #      100%     10 (longest request)
+    # """)
+
+    def setUp(self):
+        self.maxDiff = None
+        self.rnr = sc_runner.ScRunner()
+        self.rnr._loads(self.testYaml)
+        self.rnr._loads(self.overrideYaml)
+
+    def tearDown(self):
+        del self.rnr
+
+    def test_defaultized_yaml(self):
+        self.rnr._prepare()
+        self.assertEqual(self.rnr._scenarios, yaml.load(StringIO(self.resultScenariosYaml)))
+
+    # def test_runner_1(self):
+    #     """
+    #     fake run one pass
+    #     """
+
+    #     def fake_runner(script, task, env):
+    #         self.fr_result.append(script)
+    #         return 0, None, None
+
+    #     self.fr_result = []
+    #     self.t2.run(runner=fake_runner)
+    #     self.assertEqual(self.fr_result, [
+    #         ['ab', '-c', '1', '-n', '100', 'http://127.0.0.1/'],
+    #         ['ab', '-c', '100', '-n', '100000', 'http://127.0.0.1/']
+    #     ])
+
+# self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
+
 if __name__ == '__main__':
     unittest.main()

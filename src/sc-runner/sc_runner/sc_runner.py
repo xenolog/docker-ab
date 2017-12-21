@@ -11,12 +11,12 @@ from io import StringIO
 
 from ab2json.ab2json import ab_output_to_dict, ab_dict_to_generic_format
 
+
 def dict_merger(*args):
     for i in args:
         if not isinstance(i, dict):
             raise TypeError("all argiments should be a dict, not {}".format(type(i)))
     rv = {}
-    # rv.update(args[0])
     for d in args:
         keys2 = set()
         keys2.update(rv.keys())
@@ -33,8 +33,6 @@ def dict_merger(*args):
 
 def DefaultizeConfig(h):
     defaults = h.get('defaults', {})
-    if not defaults:
-        return {}
     rv = {}
     for t in sorted(h.keys() - ['defaults']):
             rv[t] = dict_merger(defaults, h[t])
@@ -70,11 +68,11 @@ class ScRunner(object):
 
     def _prepare(self):
         overrided_config = dict_merger(*self._settings)
-        self._scenarios = overrided_config.get('scenarios', {})
         self._scenario_id = overrided_config.get('scenario_id')
         if self._scenario_id is None:
             raise ValueError("Scenario-ID should be defined")
         self.config = DefaultizeConfig(overrided_config.get('tasks', {}))
+        self._scenarios = DefaultizeConfig(overrided_config.get('scenarios', {}))
 
     def _loader(self, infile):
         self._settings.append(yaml.load(infile))
@@ -163,8 +161,9 @@ class ScRunner(object):
             report_filename = "{}/{}__sc{:04d}__task{:04d}__report.json".format(
                 self.out_dir, self.ts, self._scenario_id, k
             )
+            generic_result = ab_dict_to_generic_format(v)
             with open(report_filename, "w") as f:
-                f.write(json.dumps(ab_dict_to_generic_format(v), sort_keys=True, indent=2))
+                f.write(json.dumps(generic_result, sort_keys=True, indent=2))
         # result weight analitics should be here
 
 
