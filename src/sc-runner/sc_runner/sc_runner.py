@@ -156,14 +156,20 @@ class ScRunner(object):
                 self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
         return rc
 
-    def generate_report(self):
+    def generate_report(self, outfile=None, format="json"):
         for k, v in self.results.items():
             report_filename = "{}/{}__sc{:04d}__task{:04d}__report.json".format(
                 self.out_dir, self.ts, self._scenario_id, k
             )
             generic_result = ab_dict_to_generic_format(v)
-            with open(report_filename, "w") as f:
-                f.write(json.dumps(generic_result, sort_keys=True, indent=2))
+            if outfile is None:
+                # This construction required for test purposes only
+                outfile = open(report_filename, "w")
+            with outfile as f:
+                if format == "json":
+                    f.write(json.dumps(generic_result, sort_keys=True, indent=2))
+                else:
+                    f.write(yaml.dump(generic_result, indent=2))
         # result weight analitics should be here
 
 

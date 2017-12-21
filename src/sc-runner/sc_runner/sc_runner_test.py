@@ -5,6 +5,8 @@ import textwrap
 import yaml
 from io import StringIO
 
+from ab2json.ab2json import ab_output_to_dict #, ab_dict_to_generic_format
+
 
 class T0(unittest.TestCase):
 
@@ -370,52 +372,52 @@ class T3(unittest.TestCase):
               - 3
               - 4
     """)
-    # ABoutput = textwrap.dedent("""\
-    #     This is ApacheBench, Version 2.3 <$Revision: 1796539 $>
-    #     Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
-    #     Licensed to The Apache Software Foundation, http://www.apache.org/
+    ABoutput = textwrap.dedent("""\
+        This is ApacheBench, Version 2.3 <$Revision: 1796539 $>
+        Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+        Licensed to The Apache Software Foundation, http://www.apache.org/
 
-    #     Benchmarking 172.17.0.2 (be patient)
+        Benchmarking 172.17.0.2 (be patient)
 
 
-    #     Server Software:        nginx/1.13.7
-    #     Server Hostname:        172.17.0.2
-    #     Server Port:            80
+        Server Software:        nginx/1.13.7
+        Server Hostname:        172.17.0.2
+        Server Port:            80
 
-    #     Document Path:          /
-    #     Document Length:        612 bytes
+        Document Path:          /
+        Document Length:        612 bytes
 
-    #     Concurrency Level:      10
-    #     Time taken for tests:   3.502 seconds
-    #     Complete requests:      10000
-    #     Failed requests:        0
-    #     Total transferred:      8450000 bytes
-    #     HTML transferred:       6120000 bytes
-    #     Requests per second:    2855.13 [#/sec] (mean)
-    #     Time per request:       3.502 [ms] (mean)
-    #     Time per request:       0.350 [ms] (mean, across all concurrent requests)
-    #     Transfer rate:          2356.04 [Kbytes/sec] received
+        Concurrency Level:      10
+        Time taken for tests:   3.502 seconds
+        Complete requests:      10000
+        Failed requests:        0
+        Total transferred:      8450000 bytes
+        HTML transferred:       6120000 bytes
+        Requests per second:    2855.13 [#/sec] (mean)
+        Time per request:       3.502 [ms] (mean)
+        Time per request:       0.350 [ms] (mean, across all concurrent requests)
+        Transfer rate:          2356.04 [Kbytes/sec] received
 
-    #     Connection Times (ms)
-    #                   min  mean[+/-sd] median   max
-    #     Connect:        0    1   0.5      0       3
-    #     Processing:     0    3   0.8      3      10
-    #     Waiting:        0    3   0.8      3      10
-    #     Total:          1    3   0.6      3      10
-    #     WARNING: The median and mean for the initial connection time are not within a normal deviation
-    #             These results are probably not that reliable.
+        Connection Times (ms)
+                      min  mean[+/-sd] median   max
+        Connect:        0    1   0.5      0       3
+        Processing:     0    3   0.8      3      10
+        Waiting:        0    3   0.8      3      10
+        Total:          1    3   0.6      3      10
+        WARNING: The median and mean for the initial connection time are not within a normal deviation
+                These results are probably not that reliable.
 
-    #     Percentage of the requests served within a certain time (ms)
-    #       50%      3
-    #       66%      4
-    #       75%      4
-    #       80%      4
-    #       90%      4
-    #       95%      4
-    #       98%      5
-    #       99%      5
-    #      100%     10 (longest request)
-    # """)
+        Percentage of the requests served within a certain time (ms)
+          50%      3
+          66%      4
+          75%      4
+          80%      4
+          90%      4
+          95%      4
+          98%      5
+          99%      5
+         100%     10 (longest request)
+    """)
 
     def setUp(self):
         self.maxDiff = None
@@ -430,23 +432,53 @@ class T3(unittest.TestCase):
         self.rnr._prepare()
         self.assertEqual(self.rnr._scenarios, yaml.load(StringIO(self.resultScenariosYaml)))
 
-    # def test_runner_1(self):
-    #     """
-    #     fake run one pass
-    #     """
+    def test_runner_1(self):
+        """
+        fake run one pass of Scenario #1
+        """
 
-    #     def fake_runner(script, task, env):
-    #         self.fr_result.append(script)
-    #         return 0, None, None
+        def fake_runner(script, task, env):
+            self.fr_result.append(script)
+            return 0, None, None
 
-    #     self.fr_result = []
-    #     self.t2.run(runner=fake_runner)
-    #     self.assertEqual(self.fr_result, [
-    #         ['ab', '-c', '1', '-n', '100', 'http://127.0.0.1/'],
-    #         ['ab', '-c', '100', '-n', '100000', 'http://127.0.0.1/']
-    #     ])
+        class MyStringIO(StringIO):
+            def close(self):
+                pass
 
-# self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
+        self.fr_result = []
+        self.rnr.run(runner=fake_runner)
+        outfile = MyStringIO()
+        self.rnr.results[1] = ab_output_to_dict(infile=StringIO(self.ABoutput))
+        outfile.seek(0)
+        self.rnr.generate_report(outfile=outfile, format="yaml")
+        #
+        self.assertEqual(self.fr_result, [
+            ['ab', '-c', '10', '-n', '10000', 'http://127.0.0.1/']
+        ])
+        self.assertEqual(yaml.load(outfile.getvalue()), {
+            'result_details': [
+                {'name': 'Time taken for tests, seconds', 'value': '3.502'},
+                {'name': 'Complete requests', 'value': '10000'},
+                {'name': 'Failed requests', 'value': '0'},
+                {'name': 'Total transferred, bytes', 'value': '8450000'},
+                {'name': 'HTML transferred, bytes', 'value': '6120000'},
+                {'name': 'Time per request, ms', 'value': '0.350'},
+                {'name': 'Requests per second, #/sec', 'value': '2855.13'},
+                {'name': 'Transfer rate, Kbytes/sec', 'value': '2356.04'},
+                {'name': 'The median and mean for the initial connection time are not within a normal ' +
+                    'deviation These results are probably not that reliable.', 'value': 1}
+            ],
+            'test_errors': [],
+            'test_parameters': [
+                {'name': 'Server Software', 'value': 'nginx/1.13.7'},
+                {'name': 'Server Hostname', 'value': '172.17.0.2'},
+                {'name': 'Server Port', 'value': '80'},
+                {'name': 'Document Path', 'value': '/'},
+                {'name': 'Document Length, bytes', 'value': '612'},
+                {'name': 'Concurrency Level', 'value': '10'}
+            ]
+        })
+
 
 if __name__ == '__main__':
     unittest.main()
