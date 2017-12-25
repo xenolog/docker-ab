@@ -4,7 +4,8 @@ LABEL maintainer="Sergey Vasilenko <svasilenko@mirantis.com>"
 # Set the minimum Docker API version required for libnetwork.
 ENV DOCKER_API_VERSION 1.21
 
-RUN apk update \
+RUN mkdir -p /var/lib/agent_input /var/lib/agent_output \
+  && apk update \
   && apk add curl ca-certificates apache2-utils python3 py3-yaml \
   && pip3 install yaql \
   && mkdir -p /tmp/src
