@@ -304,6 +304,7 @@ class T3(unittest.TestCase):
         scenarios:
           defaults:
             metadata:
+              ewq: abc
               vnf_name: "AVI LB"
               vnf_id: "1"
               vnf_version: "1.0"
@@ -335,6 +336,7 @@ class T3(unittest.TestCase):
               requests: 100
             criteria: "???"
           2:
+            description: Get web page 10000 times by 10 thread
             properties:
               concurrency: 10
               requests: 10000
@@ -357,6 +359,7 @@ class T3(unittest.TestCase):
         1:
           metadata:
               qwe: 123
+              ewq: abc
               vnf_id: "2"
               vnf_name: "AVI LB"
               vnf_version: "1.0"
@@ -365,6 +368,7 @@ class T3(unittest.TestCase):
         2:
           metadata:
               qwe: 123
+              ewq: abc
               vnf_id: "2"
               vnf_name: "AVI LB"
               vnf_version: "1.0"
@@ -448,7 +452,8 @@ class T3(unittest.TestCase):
         self.fr_result = []
         self.rnr.run(runner=fake_runner)
         outfile = MyStringIO()
-        self.rnr.results[1] = ab_output_to_dict(infile=StringIO(self.ABoutput))
+        # '2' is ID of task
+        self.rnr.results[2] = ab_output_to_dict(infile=StringIO(self.ABoutput))
         outfile.seek(0)
         self.rnr.generate_report(outfile=outfile, format="yaml")
         #
@@ -456,6 +461,14 @@ class T3(unittest.TestCase):
             ['ab', '-c', '10', '-n', '10000', 'http://127.0.0.1/']
         ])
         self.assertEqual(yaml.load(outfile.getvalue()), {
+            'qwe': 123,
+            'ewq': 'abc',
+            'vnf_id': '2',
+            'vnf_name': 'AVI LB',
+            'vnf_version': '1.0',
+            'test_scenario_id': '1',
+            'test_id': '2',
+            'test_description': 'Get web page 10000 times by 10 thread',
             'result_details': [
                 {'name': 'Time taken for tests, seconds', 'value': '3.502'},
                 {'name': 'Complete requests', 'value': '10000'},
@@ -466,7 +479,7 @@ class T3(unittest.TestCase):
                 {'name': 'Requests per second, #/sec', 'value': '2855.13'},
                 {'name': 'Transfer rate, Kbytes/sec', 'value': '2356.04'},
                 {'name': 'The median and mean for the initial connection time are not within a normal ' +
-                    'deviation These results are probably not that reliable.', 'value': 1}
+                         'deviation These results are probably not that reliable.', 'value': 1}
             ],
             'test_errors': [],
             'test_parameters': [
@@ -476,7 +489,8 @@ class T3(unittest.TestCase):
                 {'name': 'Document Path', 'value': '/'},
                 {'name': 'Document Length, bytes', 'value': '612'},
                 {'name': 'Concurrency Level', 'value': '10'}
-            ]
+            ],
+            'timestamp': self.rnr.ts
         })
 
 

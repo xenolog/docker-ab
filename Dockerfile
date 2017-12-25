@@ -6,15 +6,16 @@ ENV DOCKER_API_VERSION 1.21
 
 RUN apk update \
   && apk add curl ca-certificates apache2-utils python3 py3-yaml \
-  && pip3 install yaql
+  && pip3 install yaql \
+  && mkdir -p /tmp/src
 
 # Copy in the filesystem
 COPY root/ /
-COPY src/ /tmp/
+COPY src/ /tmp/src/
 
-RUN pip3 install /tmp/ab-parse/ \
-  && pip3 install /tmp/sc-runner/ \
-  && rm -rf /tmp/* && rm -rf /var/cache/apk/*
+RUN pip3 install /tmp/src/ab-parse/ \
+  && pip3 install /tmp/src/sc-runner/ \
+  && rm -rf /tmp/src && rm -rf /var/cache/apk/*
 
 CMD ["start_ab"]
 # should be latest for proper versioning

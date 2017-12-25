@@ -156,14 +156,34 @@ class ScRunner(object):
                 self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
         return rc
 
-    def generate_report(self, outfile=None, format="json"):
+    def add_scenario_metadata(self, result):
+        scenario = self._scenarios.get(self._scenario_id, {})
+        for k, v in scenario.get('metadata', {}).items():
+            result[k] = v
+
+    def add_task_metadata(self, result, task_id=0, prefix='test_'):
+        fields = ('name', 'description')
+        task = self.config[task_id]
+        for k in fields:
+            v = task.get(k)
+            if v is not None:
+                result["{}{}".format(prefix, k)] = v
+        result["{}id".format(prefix)] = str(task_id)
+        result["{}scenario_id".format(prefix)] = str(self._scenario_id)
+        result['timestamp'] = self.ts
+
+    def generate_report(self, outfile=None, format="json", proxy_sc_metadata=True, proxy_task_metadata=True):
         for k, v in self.results.items():
-            report_filename = "{}/{}__sc{:04d}__task{:04d}__report.json".format(
-                self.out_dir, self.ts, self._scenario_id, k
-            )
             generic_result = ab_dict_to_generic_format(v)
+            if proxy_sc_metadata:
+                self.add_scenario_metadata(generic_result)
+            if proxy_task_metadata:
+                self.add_task_metadata(generic_result, task_id=k)
             if outfile is None:
-                # This construction required for test purposes only
+                # Write file with auto-generated name
+                report_filename = "{}/{}__sc{:04d}__task{:04d}__report.json".format(
+                    self.out_dir, self.ts, self._scenario_id, k
+                )
                 outfile = open(report_filename, "w")
             with outfile as f:
                 if format == "json":
