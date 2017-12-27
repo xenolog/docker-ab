@@ -7,9 +7,16 @@ import subprocess
 import logging
 import shlex
 import datetime
+import yaql
+
 from io import StringIO
 
 from ab2json.ab2json import ab_output_to_dict, ab_dict_to_generic_format
+
+
+TEST_RESULT_KEY = '__test_result'
+TEST_RESULT_PASSED = 'passed'
+TEST_RESULT_FAILED = 'failed'
 
 
 def dict_merger(*args):
@@ -53,6 +60,8 @@ class ScRunner(object):
         self.out_dir = out_dir
         self.res_dir = res_dir
         self.ts = None
+
+        self.YaqlEngine = yaql.factory.YaqlFactory().create()
 
         self._settings.append({
             # defaults for tasks
@@ -152,8 +161,14 @@ class ScRunner(object):
             if rc > grc:
                 grc = rc
             # analize AB result
-            if rc == 0 and stdout is not None:
+            if rc == int(task.get('criteria', {}).get('rc', {}).get('value', 0)) and stdout is not None:
                 self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
+            elif rc == int(task.get('criteria', {}).get('rc', {}).get('value', 0)):
+                # no stdout, use only RC
+                self.results[task_id] = {TEST_RESULT_KEY: TEST_RESULT_PASSED}
+            else:
+                # was error
+                self.results[task_id] = {TEST_RESULT_KEY: TEST_RESULT_FAILED}
         return rc
 
     def add_scenario_metadata(self, result):
@@ -175,6 +190,12 @@ class ScRunner(object):
     def generate_report(self, outfile=None, format="json", proxy_sc_metadata=True, proxy_task_metadata=True):
         for k, v in self.results.items():
             generic_result = ab_dict_to_generic_format(v)
+            if v.get(TEST_RESULT_KEY) is None:
+                # Calculate test criteria by YAQL expression
+                generic_result['test_result'] = self.evaluate_test_result(v, task_id=k)
+            else:
+                generic_result['test_result'] = v[TEST_RESULT_KEY]
+            # add metadata to result file
             if proxy_sc_metadata:
                 self.add_scenario_metadata(generic_result)
             if proxy_task_metadata:
@@ -184,13 +205,31 @@ class ScRunner(object):
                 report_filename = "{}/{}__sc{:04d}__task{:04d}__report.json".format(
                     self.out_dir, self.ts, self._scenario_id, k
                 )
-                outfile = open(report_filename, "w")
-            with outfile as f:
+                report_file = open(report_filename, "w")
+            else:
+                # this need for pass file-like object from unit-tests.
+                report_file = outfile
+            try:
                 if format == "json":
-                    f.write(json.dumps(generic_result, sort_keys=True, indent=2))
+                    report_file.write(json.dumps(generic_result, sort_keys=True, indent=2))
                 else:
-                    f.write(yaml.dump(generic_result, indent=2))
-        # result weight analitics should be here
+                    report_file.write(yaml.dump(generic_result, indent=2))
+            finally:
+                if outfile is None:
+                    report_file.close()
+
+    def evaluate_test_result(self, result, task_id=0):
+        rv = TEST_RESULT_FAILED
+        task = self.config[task_id]
+        req = task.get('criteria', {}).get('expression', {}).get('request', 'nul')
+        res = task.get('criteria', {}).get('expression', {}).get('result', 'true')
+        if isinstance(res, bool):
+            # this required for simplify settings.yaml file writing. i.e. mean True == 'true'
+            res = str(res).lower()
+        expression = self.YaqlEngine("({req}) = ({res})".format(req=req, res=res))
+        if expression.evaluate(data=result):
+            rv = TEST_RESULT_PASSED
+        return rv
 
 
 def main():

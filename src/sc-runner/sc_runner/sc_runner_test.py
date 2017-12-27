@@ -126,7 +126,9 @@ class T1(unittest.TestCase):
             properties:
               prop1: val11
               prop2: val12
-            criteria: "???"
+            criteria:
+              rc:
+                value: 127
           2:
             properties:
               prop1: val11
@@ -134,13 +136,13 @@ class T1(unittest.TestCase):
     """)
 
     OverrideAbstractYaml = textwrap.dedent("""\
-    tasks:
-      defaults:
-        properties:
-          host_ip: 127.0.0.1
-      2:
-        properties:
-          host_ip: 192.168.0.1
+      tasks:
+        defaults:
+          properties:
+            host_ip: 127.0.0.1
+        2:
+          properties:
+            host_ip: 192.168.0.1
     """)
 
     DefaultizedAbstractYaml = textwrap.dedent("""\
@@ -152,7 +154,9 @@ class T1(unittest.TestCase):
           prop2: val12
           prop3: val3
           prop4: val4
-        criteria: "???"
+        criteria:
+          rc:
+            value: 127
         implementation: sh
         outputs: /tmp/
         timeout: 120
@@ -224,7 +228,7 @@ class T2(unittest.TestCase):
             properties:
               concurrency: 1
               requests: 100
-            criteria: "???"
+            criteria: {}
           2:
             properties:
               concurrency: 100
@@ -328,13 +332,14 @@ class T3(unittest.TestCase):
             criteria:
               rc:
                 value: 0
-
+              expression:
+                request: int($.get("Complete requests").value) > int($.get("Failed requests").value)
+                result:  true
           1:
             description: Get web page 100 times by one thread
             properties:
               concurrency: 1
               requests: 100
-            criteria: "???"
           2:
             description: Get web page 10000 times by 10 thread
             properties:
@@ -445,15 +450,13 @@ class T3(unittest.TestCase):
             self.fr_result.append(script)
             return 0, None, None
 
-        class MyStringIO(StringIO):
-            def close(self):
-                pass
-
         self.fr_result = []
         self.rnr.run(runner=fake_runner)
-        outfile = MyStringIO()
+        outfile = StringIO()
         # '2' is ID of task
         self.rnr.results[2] = ab_output_to_dict(infile=StringIO(self.ABoutput))
+        # import json
+        # print(json.dumps(self.rnr.results[2], indent=2, sort_keys=True))
         outfile.seek(0)
         self.rnr.generate_report(outfile=outfile, format="yaml")
         #
@@ -481,6 +484,7 @@ class T3(unittest.TestCase):
                 {'name': 'The median and mean for the initial connection time are not within a normal ' +
                          'deviation These results are probably not that reliable.', 'value': 1}
             ],
+            'test_result': 'passed',
             'test_errors': [],
             'test_parameters': [
                 {'name': 'Server Software', 'value': 'nginx/1.13.7'},
