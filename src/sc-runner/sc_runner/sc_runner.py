@@ -221,7 +221,7 @@ class ScRunner(object):
     def evaluate_test_result(self, result, task_id=0):
         rv = TEST_RESULT_FAILED
         task = self.config[task_id]
-        req = task.get('criteria', {}).get('expression', {}).get('request', 'nul')
+        req = task.get('criteria', {}).get('expression', {}).get('query', 'nul')
         res = task.get('criteria', {}).get('expression', {}).get('result', 'true')
         if isinstance(res, bool):
             # this required for simplify settings.yaml file writing. i.e. mean True == 'true'

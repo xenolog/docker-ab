@@ -333,8 +333,8 @@ class T3(unittest.TestCase):
               rc:
                 value: 0
               expression:
-                request: int($.get("Complete requests").value) > int($.get("Failed requests").value)
-                result:  true
+                query:  int($.get("Complete requests").value) > int($.get("Failed requests").value)
+                result: true
           1:
             description: Get web page 100 times by one thread
             properties:
