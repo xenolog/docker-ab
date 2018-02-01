@@ -14,7 +14,10 @@ from io import StringIO
 from ab2json.ab2json import ab_output_to_dict, ab_dict_to_generic_format
 
 
-TEST_RESULT_KEY = '__test_result'
+# this values may be used in a YAQL expressions
+TEST_RC_KEY = 'rc'
+TEST_RESULT_KEY = 'test_result'
+TEST_RESULT_DATA_PRESENT_KEY = 'test_result_data_present'
 TEST_RESULT_PASSED = 'passed'
 TEST_RESULT_FAILED = 'failed'
 
@@ -161,15 +164,27 @@ class ScRunner(object):
             if rc > grc:
                 grc = rc
             # analize AB result
-            if rc == int(task.get('criteria', {}).get('rc', {}).get('value', 0)) and stdout is not None:
-                self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
-            elif rc == int(task.get('criteria', {}).get('rc', {}).get('value', 0)):
-                # no stdout, use only RC
-                self.results[task_id] = {TEST_RESULT_KEY: TEST_RESULT_PASSED}
+            criteria_rc = task.get('criteria', {}).get('rc', {})
+            self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
+            self.results[task_id][TEST_RESULT_DATA_PRESENT_KEY] = self.results[task_id]!=ab_output_to_dict(infile=StringIO(''))
+            self.results[task_id][TEST_RC_KEY] = rc
+            # self.log.warning(self.results[task_id])
+            if (rc == int(criteria_rc.get('value', 0))) == criteria_rc.get('result', True):
+                # RC is expected
+                # self.log.warning("*** task:{} AB_stdout:{}, expected RC found".format(
+                #     task_id,
+                #     self.results[task_id][TEST_RESULT_DATA_PRESENT_KEY]
+                # ))
+                # self.log.warning("*** (rc={}, criteria_rc={})".format(rc, criteria_rc))
+                self.results[task_id][TEST_RESULT_KEY] = TEST_RESULT_PASSED
             else:
-                # was error
-                self.results[task_id] = {TEST_RESULT_KEY: TEST_RESULT_FAILED}
-        return rc
+                # self.log.warning("*** task:{} AB_stdout:{}, unexpected RC found".format(
+                #     task_id,
+                #     self.results[task_id][TEST_RESULT_DATA_PRESENT_KEY]
+                # ))
+                # self.log.warning("*** (rc={}, criteria_rc={})".format(rc, criteria_rc))
+                self.results[task_id][TEST_RESULT_KEY] = TEST_RESULT_FAILED
+        return grc
 
     def add_scenario_metadata(self, result):
         scenario = self._scenarios.get(self._scenario_id, {})

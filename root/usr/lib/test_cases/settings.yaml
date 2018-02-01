@@ -24,6 +24,7 @@ tasks:
     criteria:
       rc:
         value: 0
+        result: true
       expression:
         query:  int($.get("Complete requests").value) > int($.get("Failed requests").value)
         result: true

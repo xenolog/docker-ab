@@ -160,15 +160,16 @@ def ab_dict_to_generic_format(data):
                 value = data[key]['value']
                 res[section].append({'name': name, 'value': value})
     # placing warnings into result_details
-    for k,v in data['Warning'].items():
+    for k, v in data.get('Warning', {}).items():
         res['result_details'].append({'name': k, 'value': v})
     # placing Fatal and Error into test_errors
-    for err in data['Fatal']:
+    for err in data.get('Fatal', []):
         res['test_errors'].append(err)
-    for k,v in data['Error'].items():
-        res['test_errors'].append('%s: %s' % (k,v))
+    for k, v in data.get('Error', {}).items():
+        res['test_errors'].append('%s: %s' % (k, v))
 
     return res
+
 
 def main():
     parser = argparse.ArgumentParser()

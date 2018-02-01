@@ -498,5 +498,228 @@ class T3(unittest.TestCase):
         })
 
 
+class T4(unittest.TestCase):
+    """
+    Testing errors around AB execution
+    """
+
+    testYaml = textwrap.dedent("""\
+        ---
+        scenarios:
+          1:        # rc == 0,  output present
+            tasks:
+              - 1
+          2:        # rc == 119, timeout, partial output
+            tasks:
+              - 2
+          3:        # rc == 50,  no connection
+            tasks:
+              - 3
+          4:        # The same as 3, but should be failed
+            tasks:
+              - 4
+
+        tasks:
+          defaults:
+            implementation: inline-sh
+            script: ab -c {concurrency} -n {requests} http://{host_ip}/
+            outputs: /tmp/           # script will generate two files script_name__[stderr/stdout].{test_case_id}
+            timelimit: 120           # sec
+            properties:
+              host_ip: 172.17.0.2
+              concurrency: 1
+              requests: 10
+            criteria:
+              rc:
+                value: 0
+              expression:
+                query:  int($.get("Complete requests").value) > int($.get("Failed requests").value)
+                result: true
+          1:
+            description: Positive test
+            properties:
+              concurrency: 1
+              requests: 100
+          2:
+            description: Negative test
+            properties:
+              concurrency: 10
+              requests: 100000
+            criteria:
+              rc:
+                value: 0
+                result: false
+              expression:
+                query:  int($.get("rc").value) > 0
+                result: true
+          3:
+            description: Negative test with no connection
+            properties:
+              host_ip: 172.17.0.2:82
+              concurrency: 1
+              requests: 10
+            criteria:
+              rc:
+                value: 0
+                result: false
+              expression:
+                query:  int($.get("rc").value) > 0
+                result: true
+          4:
+            description: Negative test with no connection
+            properties:
+              host_ip: 172.17.0.2:82
+              concurrency: 1
+              requests: 10
+            criteria:
+              rc:
+                value: 0
+                result: true
+              expression:
+                query:  int($.get("rc").value) > 0
+                result: true
+    """)
+    AB = {
+      'stdout': {},
+      'stderr': {},
+      'hostname': {},
+      'rc': {}
+    }
+    # -------------------
+    AB['rc'][1] = 0
+    AB['hostname'][1] = "172.17.0.2"
+    AB['stdout'][1] = textwrap.dedent("""\
+      This is ApacheBench, Version 2.3 <$Revision: 1807734 $>
+      Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+      Licensed to The Apache Software Foundation, http://www.apache.org/
+
+      Benchmarking 172.17.0.2 (be patient).....done
+
+
+      Server Software:        nginx/1.13.7
+      Server Hostname:        172.17.0.2
+      Server Port:            80
+
+      Document Path:          /
+      Document Length:        612 bytes
+
+      Concurrency Level:      1
+      Time taken for tests:   0.064 seconds
+      Complete requests:      100
+      Failed requests:        0
+      Total transferred:      84500 bytes
+      HTML transferred:       61200 bytes
+      Requests per second:    1551.71 [#/sec] (mean)
+      Time per request:       0.644 [ms] (mean)
+      Time per request:       0.644 [ms] (mean, across all concurrent requests)
+      Transfer rate:          1280.46 [Kbytes/sec] received
+
+      Connection Times (ms)
+                    min  mean[+/-sd] median   max
+      Connect:        0    0   0.0      0       0
+      Processing:     0    0   0.1      0       1
+      Waiting:        0    0   0.0      0       0
+      Total:          0    1   0.1      1       1
+
+      Percentage of the requests served within a certain time (ms)
+        50%      1
+        66%      1
+        75%      1
+        80%      1
+        90%      1
+        95%      1
+        98%      1
+        99%      1
+       100%      1 (longest request)
+    """)
+    AB['stderr'][1] = ""
+    # -------------------
+    AB['rc'][2] = 119
+    AB['hostname'][2] = "172.17.0.2"
+    AB['stdout'][2] = textwrap.dedent("""\
+      This is ApacheBench, Version 2.3 <$Revision: 1807734 $>
+      Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+      Licensed to The Apache Software Foundation, http://www.apache.org/
+
+      Benchmarking 172.17.0.2 (be patient)
+      Total of 99999 requests completed
+    """)
+    AB['stderr'][2] = textwrap.dedent("""\
+      Completed 10000 requests
+      Completed 20000 requests
+      Completed 30000 requests
+      Completed 40000 requests
+      Completed 50000 requests
+      Completed 60000 requests
+      Completed 70000 requests
+      Completed 80000 requests
+      Completed 90000 requests
+      apr_pollset_poll: The timeout specified has expired (70007)
+    """)
+    # -------------------
+    AB['rc'][3] = 50
+    AB['hostname'][3] = "172.17.0.2:82"
+    AB['stdout'][3] = textwrap.dedent("""\
+      This is ApacheBench, Version 2.3 <$Revision: 1807734 $>
+      Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+      Licensed to The Apache Software Foundation, http://www.apache.org/
+
+      Benchmarking 172.17.0.2:82 (be patient)...
+    """)
+    AB['stderr'][3] = textwrap.dedent("""\
+      apr_sockaddr_info_get() for 172.17.0.2:82: Name does not resolve (670002)
+    """)
+    # -------------------
+    AB['rc'][4] = AB['rc'][3]
+    AB['hostname'][4] = AB['hostname'][3]
+    AB['stdout'][4] = AB['stdout'][3]
+    AB['stderr'][4] = AB['stderr'][3]
+    # -------------------
+
+    def setUp(self):
+        self.maxDiff = None
+        self.rnr = sc_runner.ScRunner()
+        self.rnr._loads(self.testYaml)
+
+    def tearDown(self):
+        del self.rnr
+
+    def _test_sc(self, sc):
+
+        def fake_runner(script, task, env):
+            return self.AB['rc'][sc], self.AB['stdout'][sc], self.AB['stderr'][sc]
+
+        self.rnr._loads("scenario_id: {}".format(sc))
+        return self.rnr.run(runner=fake_runner)
+
+    def test_sc_1(self):
+        sc = 1
+        self._test_sc(sc)
+        self.assertEqual(self.rnr.results[sc]['rc'], 0)
+        self.assertEqual(self.rnr.results[sc]['test_result'], 'passed')
+        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], True)
+
+    def test_sc_2(self):
+        sc = 2
+        self._test_sc(sc)
+        self.assertEqual(self.rnr.results[sc]['rc'], 119)
+        self.assertEqual(self.rnr.results[sc]['test_result'], 'passed')
+        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], False)
+
+    def test_sc_3(self):
+        sc = 3
+        self._test_sc(sc)
+        self.assertEqual(self.rnr.results[sc]['rc'], 50)
+        self.assertEqual(self.rnr.results[sc]['test_result'], 'passed')
+        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], False)
+
+    def test_sc_4(self):
+        sc = 4
+        self._test_sc(sc)
+        self.assertEqual(self.rnr.results[sc]['rc'], 50)
+        self.assertEqual(self.rnr.results[sc]['test_result'], 'failed')
+        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], False)
+
+
 if __name__ == '__main__':
     unittest.main()
