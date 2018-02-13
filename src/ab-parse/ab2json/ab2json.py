@@ -1,4 +1,5 @@
 import argparse
+import copy
 import json
 import re
 import sys
@@ -32,10 +33,10 @@ key_wl = test_parameters + result_details
 k_v = re.compile("([^:]+)\:\s+(\S+)\s*\Z"), ("key", "value")
 # key-value-units string (value is a number)
 k_v_u = re.compile("([^:]+)\:\s+(\d*\.\d*|\d+)\s+(\S+)\s*\Z"), \
-        ("key", "value", "units")
+    ("key", "value", "units")
 # key-value-units-note string (value is a number)
 k_v_u_n = re.compile("([^:]+)\:\s+(\d*\.\d*|\d+)\s+\[(\S+)\]\s+(.+)"), \
-          ("key", "value", "units", "note")
+    ("key", "value", "units", "note")
 # connection times row, 3 columns
 table_row_3 = \
     re.compile("([^:]+)\:\s+(\d*\.\d*|\d+)\s+(\d*\.\d*|\d+)\s+"
@@ -49,7 +50,7 @@ table_row_5 = \
 # percentile rows
 percentile = re.compile("\s+([\d]{1,2})\%\s+(\d+)\s*\Z"), ("perc", "time")
 percent100 = re.compile("\s+(100)\%\s+(\d+)\s+\(longest request\)\s*\Z"), \
-             ("perc", "time")
+    ("perc", "time")
 # all non-error results
 common = \
     (k_v, k_v_u, k_v_u_n, table_row_3, table_row_5, percentile, percent100)
@@ -69,20 +70,37 @@ ew_cont = re.compile("^ {7,8}([^ ].*)")
 perc_table = "Percentile vs Time (ms)"
 conn_time_table = "Connection Times (ms)"
 
+# Connection Times characteristics to convert to generic format
+conn_time_to_gen = ("sd", "avg", "max")
+
+# Result dict template
+result_template = {
+    "Fatal": [],
+    "Error": {},
+    "Warning": {},
+    perc_table: {},
+    conn_time_table: {}
+}
+
+# Generic result dict template
+generic_template = {
+    'test_parameters': {},
+    'result_details': {},
+    'test_errors': []
+}
+
 
 def ab_output_to_dict(infile=sys.stdin):
+    """Parses ab output and converts it into dict.
 
+    :param infile: input file where to take ab output to parse
+    :return: parsed data (dict)
+    """
     err_alias = ""
     # multi-line error value
     err_ml_value = ""
 
-    result = {
-        "Fatal": [],
-        "Error": {},
-        "Warning": {},
-        perc_table: {},
-        conn_time_table: {}
-    }
+    result = copy.deepcopy(result_template)
 
     for line in infile:
         # handling of last line(s) for multi-line error
@@ -99,8 +117,8 @@ def ab_output_to_dict(infile=sys.stdin):
                 err_alias = ""
                 err_ml_value = ""
         # handling of first line of error
-        for re, alias in errors:
-            match = re.search(line)
+        for re_obj, alias in errors:
+            match = re_obj.search(line)
             if match and len(match.groups()) == 1:
                 err_alias = alias
                 if alias in err_multiline:
@@ -113,8 +131,8 @@ def ab_output_to_dict(infile=sys.stdin):
         if err_alias:
             continue
         # handling of non-error messages:
-        for re, fields in common:
-            match = re.search(line)
+        for re_obj, fields in common:
+            match = re_obj.search(line)
             if match and len(match.groups()) == len(fields):
                 kv = dict(zip(fields, match.groups()))
                 key = kv.pop(fields[0])
@@ -132,8 +150,15 @@ def ab_output_to_dict(infile=sys.stdin):
     return result
 
 
-def ab_output_to_json(generic=False):
-    data = ab_output_to_dict()
+def ab_output_to_json(generic=False, infile=sys.stdin):
+    """Parses ab output and writes the results into stdout using JSON format.
+
+    :param generic: convert parsed ab output into generic format compatible
+                    with ElasticSearch
+    :param infile:  input file where to take ab output to parse
+    :return: None (results are written to stdout)
+    """
+    data = ab_output_to_dict(infile)
     if generic:
         data = ab_dict_to_generic_format(data)
 
@@ -146,11 +171,8 @@ def ab_dict_to_generic_format(data):
     Generic format is the one defined for storing test results
     in ElasticSearch
     """
-    res = {
-        'test_parameters': [],
-        'result_details': [],
-        'test_errors': []
-    }
+    res = copy.deepcopy(generic_template)
+
     for section in ('test_parameters', 'result_details'):
         for key in eval(section):
             if data.get(key):
@@ -158,15 +180,25 @@ def ab_dict_to_generic_format(data):
                 if 'units' in data[key]:
                     name += ', ' + data[key]['units']
                 value = data[key]['value']
-                res[section].append({'name': name, 'value': value})
+                res[section][name] = value
+    # placing Connection Times table into result_details
+    if data.get(conn_time_table):
+        for key, report in data[conn_time_table].items():
+            for subkey, value in report.items():
+                if subkey in conn_time_to_gen:
+                    legend = "TC_{0}_{1}, ms".format(key, subkey)
+                    res['result_details'][legend] = value
     # placing warnings into result_details
-    for k, v in data.get('Warning', {}).items():
-        res['result_details'].append({'name': k, 'value': v})
+    if data.get('Warning'):
+        res['result_details']['warnings'] = []
+        for msg, count in data.get('Warning', {}).items():
+            warn = {"message": msg, "count": count}
+            res['result_details']['warnings'].append(warn)
     # placing Fatal and Error into test_errors
-    for err in data.get('Fatal', []):
-        res['test_errors'].append(err)
-    for k, v in data.get('Error', {}).items():
-        res['test_errors'].append('%s: %s' % (k, v))
+    for msg in data.get('Fatal', []):
+        res['test_errors'].append({"message": msg, "count": 1})
+    for msg, count in data.get('Error', {}).items():
+        res['test_errors'].append({"message": msg, "count": count})
 
     return res
 
@@ -174,10 +206,11 @@ def ab_dict_to_generic_format(data):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--generic", help="print JSON in generic format",
-        action="store_true")
+                        action="store_true")
     args = parser.parse_args()
 
     ab_output_to_json(generic=args.generic)
+
 
 if __name__ == "__main__":
     main()

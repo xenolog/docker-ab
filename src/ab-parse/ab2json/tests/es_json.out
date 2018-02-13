@@ -1,0 +1,97 @@
+{
+    "Complete requests": {
+        "value": "20000"
+    },
+    "Concurrency Level": {
+        "value": "20"
+    },
+    "Connection Times (ms)": {
+        "Connect": {
+            "avg": "0",
+            "max": "2",
+            "mean": "0",
+            "min": "0",
+            "sd": "0.2"
+        },
+        "Processing": {
+            "avg": "1",
+            "max": "7",
+            "mean": "1",
+            "min": "0",
+            "sd": "0.7"
+        },
+        "Total": {
+            "avg": "1",
+            "max": "8",
+            "mean": "2",
+            "min": "0",
+            "sd": "0.7"
+        },
+        "Waiting": {
+            "avg": "1",
+            "max": "7",
+            "mean": "1",
+            "min": "0",
+            "sd": "0.7"
+        }
+    },
+    "Document Length": {
+        "units": "bytes",
+        "value": "328"
+    },
+    "Document Path": {
+        "value": "/"
+    },
+    "Error": {},
+    "Failed requests": {
+        "value": "0"
+    },
+    "Fatal": [],
+    "HTML transferred": {
+        "units": "bytes",
+        "value": "6560000"
+    },
+    "Percentile vs Time (ms)": {
+        "100": "8",
+        "50": "1",
+        "66": "2",
+        "75": "2",
+        "80": "2",
+        "90": "2",
+        "95": "3",
+        "98": "3",
+        "99": "4"
+    },
+    "Requests per second": {
+        "note": "(mean)",
+        "units": "#/sec",
+        "value": "12912.47"
+    },
+    "Server Hostname": {
+        "value": "localhost"
+    },
+    "Server Port": {
+        "value": "9200"
+    },
+    "Time per request": {
+        "note": "(mean, across all concurrent requests)",
+        "units": "ms",
+        "value": "0.077"
+    },
+    "Time taken for tests": {
+        "units": "seconds",
+        "value": "1.549"
+    },
+    "Total transferred": {
+        "units": "bytes",
+        "value": "8300000"
+    },
+    "Transfer rate": {
+        "note": "received",
+        "units": "Kbytes/sec",
+        "value": "5233.08"
+    },
+    "Warning": {
+        "The median and mean for the total time are not within a normal deviation These results are probably not that reliable.": 1
+    }
+}

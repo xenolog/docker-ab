@@ -1,0 +1,38 @@
+{
+    "result_details": {
+        "Complete requests": "20000",
+        "Failed requests": "0",
+        "HTML transferred, bytes": "6560000",
+        "Requests per second, #/sec": "12912.47",
+        "TC_Connect_avg, ms": "0",
+        "TC_Connect_max, ms": "2",
+        "TC_Connect_sd, ms": "0.2",
+        "TC_Processing_avg, ms": "1",
+        "TC_Processing_max, ms": "7",
+        "TC_Processing_sd, ms": "0.7",
+        "TC_Total_avg, ms": "1",
+        "TC_Total_max, ms": "8",
+        "TC_Total_sd, ms": "0.7",
+        "TC_Waiting_avg, ms": "1",
+        "TC_Waiting_max, ms": "7",
+        "TC_Waiting_sd, ms": "0.7",
+        "Time per request, ms": "0.077",
+        "Time taken for tests, seconds": "1.549",
+        "Total transferred, bytes": "8300000",
+        "Transfer rate, Kbytes/sec": "5233.08",
+        "warnings": [
+            {
+                "count": 1,
+                "message": "The median and mean for the total time are not within a normal deviation These results are probably not that reliable."
+            }
+        ]
+    },
+    "test_errors": [],
+    "test_parameters": {
+        "Concurrency Level": "20",
+        "Document Length, bytes": "328",
+        "Document Path": "/",
+        "Server Hostname": "localhost",
+        "Server Port": "9200"
+    }
+}

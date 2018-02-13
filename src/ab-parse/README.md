@@ -155,74 +155,44 @@ Output example (formatted):
 
 '--generic' CLI option can be specified to get JSON in generic format.
 Generic format is the one defined for storing test results in ElasticSearch.
+
 Example of JSON in generic format:
-```
+
+```json
 {
-    "result_details": [
-        {
-            "name": "Time taken for tests, seconds",
-            "value": "2.428"
-        },
-        {
-            "name": "Complete requests",
-            "value": "100"
-        },
-        {
-            "name": "Failed requests",
-            "value": "0"
-        },
-        {
-            "name": "Non-2xx responses",
-            "value": "100"
-        },
-        {
-            "name": "Total transferred, bytes",
-            "value": "34933"
-        },
-        {
-            "name": "HTML transferred, bytes",
-            "value": "4000"
-        },
-        {
-            "name": "Time per request, ms",
-            "value": "24.278"
-        },
-        {
-            "name": "Requests per second, #/sec",
-            "value": "41.19"
-        },
-        {
-            "name": "Transfer rate, Kbytes/sec",
-            "value": "14.05"
-        }
-    ],
-    "test_errors": [],
-    "test_parameters": [
-        {
-            "name": "Server Software",
-            "value": "nginx"
-            },
-        {
-            "name": "Server Hostname",
-            "value": "ipinfo.io"
-        },
-        {
-            "name": "Server Port",
-            "value": "80"
-        },
-        {
-            "name": "Document Path",
-            "value": "/"
-        },
-        {
-            "name": "Document Length, bytes",
-            "value": "40"
-        },
-        {
-            "name": "Concurrency Level",
-            "value": "10"
-        }
-    ]
+    "result_details": {
+        "Complete requests": "20",
+        "Failed requests": "0",
+        "HTML transferred, bytes": "800",
+        "Non-2xx responses": "20",
+        "Requests per second, #/sec": "50.76",
+        "Response code not 2xx (302)": 20,
+        "TC_Connect_avg, ms": "23",
+        "TC_Connect_max, ms": "24",
+        "TC_Connect_sd, ms": "0.1",
+        "TC_Processing_avg, ms": "167",
+        "TC_Processing_max, ms": "178",
+        "TC_Processing_sd, ms": "3.0",
+        "TC_Total_avg, ms": "190",
+        "TC_Total_max, ms": "201",
+        "TC_Total_sd, ms": "2.9",
+        "TC_Waiting_avg, ms": "166",
+        "TC_Waiting_max, ms": "178",
+        "TC_Waiting_sd, ms": "2.9",
+        "Time per request, ms": "19.702",
+        "Time taken for tests, seconds": "0.394",
+        "Total transferred, bytes": "7147",
+        "Transfer rate, Kbytes/sec": "17.71"
+    },
+    "test_errors": {},
+    "test_parameters": {
+        "Server Software": "nginx",
+        "Server Hostname": "ipinfo.io",
+        "Server Port": "80",
+        "Document Path": "/",
+        "Document Length, bytes": "40",
+        "Concurrency Level": "10"
+    }
 }
 ```
 
