@@ -9,9 +9,16 @@ import shlex
 import datetime
 import yaql
 
-from io import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
-from ab2json.ab2json import ab_output_to_dict, ab_dict_to_generic_format
+sys.path.append("../ab-parse")
+try:
+    from ab2json.ab2json import ab_output_to_dict, ab_dict_to_generic_format
+except ImportError:
+    from ab2json import ab_output_to_dict, ab_dict_to_generic_format
 
 
 # this values may be used in a YAQL expressions
@@ -22,10 +29,18 @@ TEST_RESULT_PASSED = 'passed'
 TEST_RESULT_FAILED = 'failed'
 
 
+def isoformat_truncate(dt):
+    try:
+        return dt.isoformat(timespec="seconds")
+    except TypeError:
+        # Python 3.5 and below
+        return dt.isoformat().split(".")[0]
+
+
 def dict_merger(*args):
     for i in args:
         if not isinstance(i, dict):
-            raise TypeError("all argiments should be a dict, not {}".format(type(i)))
+            raise TypeError("all arguments should be a dict, not {}".format(type(i)))
     rv = {}
     for d in args:
         keys2 = set()
@@ -44,7 +59,11 @@ def dict_merger(*args):
 def DefaultizeConfig(h):
     defaults = h.get('defaults', {})
     rv = {}
-    for t in sorted(h.keys() - ['defaults']):
+    try:
+        del h['defaults']
+    except KeyError:
+        pass
+    for t in h.keys():
             rv[t] = dict_merger(defaults, h[t])
     return rv
 
@@ -54,7 +73,7 @@ class ScRunner(object):
     def __init__(self, configpaths=[], out_dir='/tmp', res_dir='/tmp'):
         self.log = logging.getLogger(__name__)
 
-        self._settings = []  # incoming settings will be merged hierarchicaly
+        self._settings = []  # incoming settings will be merged hierarchically
         self.config = {}     # merged config for run tasks
         self.results = {}    # result storage
         self._scenarios = {}
@@ -79,12 +98,12 @@ class ScRunner(object):
             self._load(cfg)
 
     def _prepare(self):
-        overrided_config = dict_merger(*self._settings)
-        self._scenario_id = overrided_config.get('scenario_id')
+        overridden_config = dict_merger(*self._settings)
+        self._scenario_id = overridden_config.get('scenario_id')
         if self._scenario_id is None:
             raise ValueError("Scenario-ID should be defined")
-        self.config = DefaultizeConfig(overrided_config.get('tasks', {}))
-        self._scenarios = DefaultizeConfig(overrided_config.get('scenarios', {}))
+        self.config = DefaultizeConfig(overridden_config.get('tasks', {}))
+        self._scenarios = DefaultizeConfig(overridden_config.get('scenarios', {}))
 
     def _loader(self, infile):
         self._settings.append(yaml.load(infile))
@@ -111,7 +130,8 @@ class ScRunner(object):
     def _exec_subprocess(self, logfilename, script, env):
         for k, v in env.items():
             env[k] = str(v)
-        p = subprocess.Popen(script,
+        p = subprocess.Popen(
+            script,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=self.out_dir,
@@ -131,7 +151,7 @@ class ScRunner(object):
 
     def run(self, runner=None):  # fake runner may be used for testing purpose
         grc = 0
-        self.ts = datetime.datetime.now().isoformat(timespec='seconds')
+        self.ts = isoformat_truncate(datetime.datetime.utcnow())
         if self.config == {}:
             self._prepare()
         for task_id in self._scenario():
@@ -147,7 +167,16 @@ class ScRunner(object):
             env.update(os.environ)
             env.update(task.get('properties', {}))
             if task['implementation'] == 'inline-sh':
-                script = script.format(**task.get('properties', {}))
+                try:
+                    script = script.format(**task.get('properties', {}))
+                except KeyError as e:
+                    self.log.error("Not enough properties: {error}.\n"
+                                   "Properties provided: {props}.\n"
+                                   "Task: {task}".format(
+                                       error=e,
+                                       props=task.get('properties'),
+                                       task=task))
+                    continue
                 script = shlex.split(script)
             elif task['implementation'] == 'sh':
                 script = [script]
@@ -156,17 +185,17 @@ class ScRunner(object):
             if runner is None:
                 # run by subprocess runner
                 rc, stdout, stderr = self._exec_subprocess(
-                    "{}__sc{:04d}__task{:04d}".format(self.ts, self._scenario_id, task_id), script, env
+                    "{}__sc-{}__task-{}".format(self.ts, self._scenario_id, task_id), script, env
                 )
             else:
                 # fake runner for test purposes
                 rc, stdout, stderr = runner(script, task, env)
             if rc > grc:
                 grc = rc
-            # analize AB result
+            # analyze AB result
             criteria_rc = task.get('criteria', {}).get('rc', {})
             self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
-            self.results[task_id][TEST_RESULT_DATA_PRESENT_KEY] = self.results[task_id]!=ab_output_to_dict(infile=StringIO(''))
+            self.results[task_id][TEST_RESULT_DATA_PRESENT_KEY] = self.results[task_id] != ab_output_to_dict(infile=StringIO(''))
             self.results[task_id][TEST_RC_KEY] = rc
             # self.log.warning(self.results[task_id])
             if (rc == int(criteria_rc.get('value', 0))) == criteria_rc.get('result', True):
@@ -217,7 +246,7 @@ class ScRunner(object):
                 self.add_task_metadata(generic_result, task_id=k)
             if outfile is None:
                 # Write file with auto-generated name
-                report_filename = "{}/{}__sc{:04d}__task{:04d}__report.json".format(
+                report_filename = "{}/{}__sc-{}__task-{}__report.json".format(
                     self.out_dir, self.ts, self._scenario_id, k
                 )
                 report_file = open(report_filename, "w")
@@ -232,6 +261,7 @@ class ScRunner(object):
             finally:
                 if outfile is None:
                     report_file.close()
+        # result weight analytics should be here
 
     def evaluate_test_result(self, result, task_id=0):
         rv = TEST_RESULT_FAILED
@@ -254,11 +284,11 @@ def main():
     )
     parser.add_argument("--config", help="Config file",
                         action="append", dest='configs', required=True)
-    parser.add_argument("--outputs-dir", help="Directory for store stderr and stdout of tasks",
+    parser.add_argument("--outputs-dir", help="Directory to store stderr and stdout of tasks",
                         action="store", dest='outputs_dir', required=True)
-    parser.add_argument("--result-dir", help="Directory for store test results in 'generic' format",
+    parser.add_argument("--result-dir", help="Directory to store test results in 'generic' format",
                         action="store", dest='result_dir', required=True)
-    #todo: --debug key
+    # TODO: --debug key
     args = parser.parse_args()
 
     tt = ScRunner(configpaths=args.configs, out_dir=args.outputs_dir, res_dir=args.result_dir)

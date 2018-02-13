@@ -1,11 +1,23 @@
-
-import unittest
-import sc_runner
+import sys
 import textwrap
+import unittest
 import yaml
-from io import StringIO
 
-from ab2json.ab2json import ab_output_to_dict #, ab_dict_to_generic_format
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+try:
+    from sc_runner import sc_runner
+except ImportError:
+    import sc_runner
+
+sys.path.append("../ab-parse")
+try:
+    from ab2json.ab2json import ab_output_to_dict
+except ImportError:
+    from ab2json import ab_output_to_dict
 
 
 class T0(unittest.TestCase):
@@ -472,28 +484,43 @@ class T3(unittest.TestCase):
             'test_scenario_id': '1',
             'test_id': '2',
             'test_description': 'Get web page 10000 times by 10 thread',
-            'result_details': [
-                {'name': 'Time taken for tests, seconds', 'value': '3.502'},
-                {'name': 'Complete requests', 'value': '10000'},
-                {'name': 'Failed requests', 'value': '0'},
-                {'name': 'Total transferred, bytes', 'value': '8450000'},
-                {'name': 'HTML transferred, bytes', 'value': '6120000'},
-                {'name': 'Time per request, ms', 'value': '0.350'},
-                {'name': 'Requests per second, #/sec', 'value': '2855.13'},
-                {'name': 'Transfer rate, Kbytes/sec', 'value': '2356.04'},
-                {'name': 'The median and mean for the initial connection time are not within a normal ' +
-                         'deviation These results are probably not that reliable.', 'value': 1}
-            ],
+            'result_details': {
+                'Time taken for tests, seconds': '3.502',
+                'Complete requests': '10000',
+                'Failed requests': '0',
+                'Total transferred, bytes': '8450000',
+                'HTML transferred, bytes': '6120000',
+                'Time per request, ms': '0.350',
+                'Requests per second, #/sec': '2855.13',
+                'Transfer rate, Kbytes/sec': '2356.04',
+                'TC_Connect_avg, ms': '0',
+                'TC_Connect_max, ms': '3',
+                'TC_Connect_sd, ms': '0.5',
+                'TC_Processing_avg, ms': '3',
+                'TC_Processing_max, ms': '10',
+                'TC_Processing_sd, ms': '0.8',
+                'TC_Total_avg, ms': '3',
+                'TC_Total_max, ms': '10',
+                'TC_Total_sd, ms': '0.6',
+                'TC_Waiting_avg, ms': '3',
+                'TC_Waiting_max, ms': '10',
+                'TC_Waiting_sd, ms': '0.8',
+                'warnings': [{
+                    'message': 'The median and mean for the initial connection'
+                               ' time are not within a normal deviation These '
+                               'results are probably not that reliable.',
+                    'count': 1}],
+            },
             'test_result': 'passed',
             'test_errors': [],
-            'test_parameters': [
-                {'name': 'Server Software', 'value': 'nginx/1.13.7'},
-                {'name': 'Server Hostname', 'value': '172.17.0.2'},
-                {'name': 'Server Port', 'value': '80'},
-                {'name': 'Document Path', 'value': '/'},
-                {'name': 'Document Length, bytes', 'value': '612'},
-                {'name': 'Concurrency Level', 'value': '10'}
-            ],
+            'test_parameters': {
+                'Server Software': 'nginx/1.13.7',
+                'Server Hostname': '172.17.0.2',
+                'Server Port': '80',
+                'Document Path': '/',
+                'Document Length, bytes': '612',
+                'Concurrency Level': '10'
+            },
             'timestamp': self.rnr.ts
         })
 
@@ -580,10 +607,10 @@ class T4(unittest.TestCase):
                 result: true
     """)
     AB = {
-      'stdout': {},
-      'stderr': {},
-      'hostname': {},
-      'rc': {}
+        'stdout': {},
+        'stderr': {},
+        'hostname': {},
+        'rc': {}
     }
     # -------------------
     AB['rc'][1] = 0

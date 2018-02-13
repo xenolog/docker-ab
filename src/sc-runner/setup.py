@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+
 setup(
     name='sc_runner',
     version='0.1',
@@ -10,6 +11,7 @@ setup(
     license='Apache 2.0',
     packages=find_packages(),
     zip_safe=False,
+    test_suite='sc_runner.sc_runner_test',
     entry_points={
         'console_scripts': [
             'sc-runner = sc_runner.sc_runner:main'
