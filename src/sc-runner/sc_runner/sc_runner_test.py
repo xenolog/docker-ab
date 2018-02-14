@@ -724,6 +724,7 @@ class T4(unittest.TestCase):
         self._test_sc(sc)
         self.assertEqual(self.rnr.results[sc]['rc'], 0)
         self.assertEqual(self.rnr.results[sc]['test_result'], 'passed')
+        self.assertEqual(self.rnr.results[sc]['Fatal'], [])
         self.assertEqual(self.rnr.results[sc]['test_result_data_present'], True)
 
     def test_sc_2(self):
@@ -731,21 +732,27 @@ class T4(unittest.TestCase):
         self._test_sc(sc)
         self.assertEqual(self.rnr.results[sc]['rc'], 119)
         self.assertEqual(self.rnr.results[sc]['test_result'], 'passed')
-        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], False)
+        self.assertEqual(self.rnr.results[sc]['Fatal'],
+                         ['apr_pollset_poll: The timeout specified has expired (70007)'])
+        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], True)
 
     def test_sc_3(self):
         sc = 3
         self._test_sc(sc)
         self.assertEqual(self.rnr.results[sc]['rc'], 50)
         self.assertEqual(self.rnr.results[sc]['test_result'], 'passed')
-        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], False)
+        self.assertEqual(self.rnr.results[sc]['Fatal'],
+                         ['apr_sockaddr_info_get() for 172.17.0.2:82: Name does not resolve (670002)'])
+        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], True)
 
     def test_sc_4(self):
         sc = 4
         self._test_sc(sc)
         self.assertEqual(self.rnr.results[sc]['rc'], 50)
         self.assertEqual(self.rnr.results[sc]['test_result'], 'failed')
-        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], False)
+        self.assertEqual(self.rnr.results[sc]['Fatal'],
+                         ['apr_sockaddr_info_get() for 172.17.0.2:82: Name does not resolve (670002)'])
+        self.assertEqual(self.rnr.results[sc]['test_result_data_present'], True)
 
 
 if __name__ == '__main__':

@@ -194,7 +194,8 @@ class ScRunner(object):
                 grc = rc
             # analyze AB result
             criteria_rc = task.get('criteria', {}).get('rc', {})
-            self.results[task_id] = ab_output_to_dict(infile=StringIO(stdout))
+            full_out = stdout + stderr if stdout and stderr else stdout
+            self.results[task_id] = ab_output_to_dict(infile=StringIO(full_out))
             self.results[task_id][TEST_RESULT_DATA_PRESENT_KEY] = self.results[task_id] != ab_output_to_dict(infile=StringIO(''))
             self.results[task_id][TEST_RC_KEY] = rc
             # self.log.warning(self.results[task_id])
